@@ -35,10 +35,11 @@ import TableOrderManagementPage from '../pages/TableOrderManagementPage';
 import TablePaymentSuccessPage from '../pages/TablePaymentSuccessPage';
 import SupportChatAdmin from '@/pages/SupportChatAdmin';
 
-// === Trang mới (Sprint 2) ===
 import CustomerCheckinPage from '../pages/CustomerCheckinPage';
 import KitchenDisplayPage from '../pages/KitchenDisplayPage';
 import WaiterBoardPage from '../pages/WaiterBoardPage';
+import FoodDashboard from '../pages/FoodDashboard';
+import DashboardRouter from '../pages/DashboardRouter';
 
 const router = createBrowserRouter([
     {
@@ -109,6 +110,7 @@ const router = createBrowserRouter([
                     </ProtectedRoute>
                 ),
                 children: [
+                    { index: true, element: <DashboardRouter /> },
                     { path: 'profile', element: <Profile /> },
                     {
                         path: 'category',
@@ -149,6 +151,10 @@ const router = createBrowserRouter([
                     {
                         path: 'support-chat',
                         element: <AdminPermission><SupportChatAdmin /></AdminPermission>,
+                    },
+                    {
+                        path: '*',
+                        element: <div className="p-4 text-center">Trang không tồn tại trong Dashboard</div>,
                     },
                 ],
             },
