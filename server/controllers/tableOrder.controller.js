@@ -46,23 +46,54 @@ export async function addItemsToTableOrder(request, response) {
         let subTotal = 0;
 
         for (const item of items) {
-            const product = await ProductModel.findById(item.productId);
-            if (!product) {
-                return response.status(404).json({
-                    message: `Không tìm thấy sản phẩm`,
+            // AC 7.4 – Validate quantity
+            const qty = parseInt(item.quantity);
+            if (!qty || qty < 1 || !Number.isInteger(qty)) {
+                return response.status(400).json({
+                    message: 'Số lượng món ăn không hợp lệ.',
                     error: true,
                     success: false
                 });
             }
 
-            const itemTotal = product.price * item.quantity;
+            // AC 7.1 – Product must exist
+            const product = await ProductModel.findById(item.productId);
+            if (!product) {
+                return response.status(404).json({
+                    message: 'Món ăn không tồn tại.',
+                    error: true,
+                    success: false
+                });
+            }
+
+            // AC 7.2 – Product must be available (status OR stock = 0 both mean hết hàng)
+            const isProductAvailable = product.status === 'available' && product.stock !== 0;
+            if (!isProductAvailable) {
+                return response.status(400).json({
+                    message: `"${product.name}" hiện không khả dụng.`,
+                    error: true,
+                    success: false
+                });
+            }
+
+            // AC 7.3 – Qty must not exceed available stock (only when stock is tracked)
+            if (product.stock > 0 && qty > product.stock) {
+                return response.status(400).json({
+                    message: `Số lượng vượt quá số lượng hiện có (còn ${product.stock}).`,
+                    error: true,
+                    success: false
+                });
+            }
+
+            const itemTotal = product.price * qty;
             subTotal += itemTotal;
 
             itemsToAdd.push({
                 productId: product._id,
                 name: product.name,
                 price: product.price,
-                quantity: item.quantity,
+                quantity: qty,
+                note: item.note || '',
                 addedAt: new Date()
             });
         }
