@@ -11,6 +11,7 @@ import {
     FiLogOut,
     FiX,
     FiClock,
+    FiBell,
 } from 'react-icons/fi';
 
 // Map kitchenStatus → label + màu hiển thị cho khách
@@ -27,6 +28,10 @@ const TableOrderManagementPage = () => {
     const [tableOrder, setTableOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [callingWaiter, setCallingWaiter] = useState(false);
+    const [waiterNote, setWaiterNote] = useState('');
+    const [showWaiterInput, setShowWaiterInput] = useState(false);
+    const [callCooldown, setCallCooldown] = useState(false);
 
     useEffect(() => {
         if (!user || user.role !== 'TABLE') {
@@ -115,6 +120,32 @@ const TableOrderManagementPage = () => {
         } catch (error) {
             console.error('Error cancelling order:', error);
             toast.error('Không thể hủy đơn');
+        }
+    };
+
+    const handleCallWaiter = async () => {
+        if (callCooldown) {
+            toast.error('Bạn vừa gửi yêu cầu. Vui lòng chờ một chút...');
+            return;
+        }
+        setCallingWaiter(true);
+        try {
+            const response = await Axios({
+                ...SummaryApi.call_waiter,
+                data: { type: 'cancel_item', note: waiterNote.trim() },
+            });
+            if (response.data.success) {
+                toast.success('🔔 Đã gửi! Nhân viên sẽ đến ngay.', { duration: 5000 });
+                setWaiterNote('');
+                setShowWaiterInput(false);
+                // Cooldown 30 giây để tránh spam
+                setCallCooldown(true);
+                setTimeout(() => setCallCooldown(false), 30000);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Không thể gửi yêu cầu');
+        } finally {
+            setCallingWaiter(false);
         }
     };
 
@@ -262,6 +293,48 @@ const TableOrderManagementPage = () => {
                             {tableOrder.total.toLocaleString('vi-VN')}đ
                         </span>
                     </div>
+                </div>
+
+                {/* Gọi phục vụ */}
+                <div className="bg-white rounded-xl shadow-sm p-5">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-semibold text-gray-800">Cần hỗ trợ?</p>
+                            <p className="text-sm text-gray-500 mt-0.5">Gọi nhân viên đến bàn</p>
+                        </div>
+                        <button
+                            onClick={() => setShowWaiterInput(p => !p)}
+                            disabled={callCooldown}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition ${
+                                callCooldown
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                            }`}
+                        >
+                            <FiBell size={18} />
+                            {callCooldown ? 'Đã gửi' : 'Gọi phục vụ'}
+                        </button>
+                    </div>
+
+                    {showWaiterInput && !callCooldown && (
+                        <div className="mt-3 space-y-2">
+                            <textarea
+                                value={waiterNote}
+                                onChange={(e) => setWaiterNote(e.target.value)}
+                                placeholder="Mô tả ngắn (VD: Muốn hủy món Phở bò)..."
+                                rows={2}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            />
+                            <button
+                                onClick={handleCallWaiter}
+                                disabled={callingWaiter}
+                                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-60"
+                            >
+                                <FiBell size={16} />
+                                {callingWaiter ? 'Đang gửi...' : 'Xác nhận gọi phục vụ'}
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Payment Buttons */}

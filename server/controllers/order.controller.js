@@ -6,7 +6,7 @@ export async function getAllOrders(request, response) {
         const userId = request.userId;
         const user = await UserModel.findById(userId);
 
-        if (!user || !['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'].includes(user.role)) {
+        if (!user || !['ADMIN', 'WAITER', 'CASHIER'].includes(user.role)) {
             return response.status(403).json({
                 message: 'Bạn không có quyền truy cập',
                 error: true,
@@ -63,7 +63,7 @@ export async function updateOrderStatus(request, response) {
 
         const user = await UserModel.findById(userId);
 
-        if (!user || !['ADMIN', 'MANAGER', 'WAITER', 'CASHIER'].includes(user.role)) {
+        if (!user || !['ADMIN', 'WAITER', 'CASHIER'].includes(user.role)) {
             return response.status(403).json({
                 message: 'Bạn không có quyền cập nhật trạng thái đơn hàng',
                 error: true,

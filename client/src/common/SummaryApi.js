@@ -422,6 +422,26 @@ const SummaryApi = {
     cashier_confirm_payment: {
         url: '/api/table-order/cashier-confirm',
         method: 'post'
+    },
+
+    // Service Requests (Gọi phục vụ)
+    call_waiter: {
+        url: '/api/service-request/call',
+        method: 'post'
+    },
+    get_pending_service_requests: {
+        url: '/api/service-request/pending',
+        method: 'get'
+    },
+    handle_service_request: {
+        url: '/api/service-request/:id/handle',
+        method: 'patch'
+    },
+
+    // Waiter cancel item
+    cancel_table_order_item: {
+        url: '/api/table-order/item/:orderId/:itemId',
+        method: 'delete'
     }
 }
 

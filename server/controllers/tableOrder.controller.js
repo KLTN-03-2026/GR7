@@ -187,7 +187,7 @@ export async function checkoutTableOrder(request, response) {
         const userId = request.userId;
         const { paymentMethod } = request.body;
 
-        if (!paymentMethod || !['cash', 'online'].includes(paymentMethod)) {
+        if (!paymentMethod || !['at_counter', 'online'].includes(paymentMethod)) {
             return response.status(400).json({
                 message: 'Vui lòng chọn phương thức thanh toán',
                 error: true,
@@ -217,53 +217,29 @@ export async function checkoutTableOrder(request, response) {
             });
         }
 
-        if (paymentMethod === 'cash') {
-            // Cash payment - create orders immediately
-            const session = await mongoose.startSession();
+        // AC: Tất cả món phải ở trạng thái 'served' trước khi được phép thanh toán
+        const unservedItems = tableOrder.items.filter(item => item.kitchenStatus !== 'served');
+        if (unservedItems.length > 0) {
+            return response.status(400).json({
+                message: `Còn ${unservedItems.length} món chưa được phục vụ. Vui lòng chờ nhân viên mang món ra bàn trước khi thanh toán.`,
+                error: true,
+                success: false
+            });
+        }
 
-            try {
-                await session.withTransaction(async () => {
-                    const orderItems = tableOrder.items.map(item => ({
-                        userId: userId,
-                        orderId: `ORD-${new mongoose.Types.ObjectId()}`,
-                        productId: item.productId._id || item.productId,
-                        product_details: {
-                            name: item.name,
-                            image: item.productId?.image || []
-                        },
-                        quantity: item.quantity,
-                        payment_status: 'Chờ thanh toán',
-                        delivery_address: null,
-                        customerContact: null,
-                        subTotalAmt: item.price * item.quantity,
-                        totalAmt: item.price * item.quantity,
-                        status: 'pending',
-                        tableNumber: tableOrder.tableNumber,
-                        orderType: 'dine_in'
-                    }));
+        if (paymentMethod === 'at_counter') {
+            // At-counter: mark as pending_payment so Cashier can confirm cash later
+            tableOrder.status = 'pending_payment';
+            tableOrder.paymentRequest = 'at_counter';
+            tableOrder.checkedOutAt = new Date();
+            await tableOrder.save();
 
-                    const newOrders = await OrderModel.insertMany(orderItems, { session });
-
-                    // Mark table order as paid
-                    tableOrder.status = 'paid';
-                    tableOrder.paymentMethod = 'cash';
-                    tableOrder.paidAt = new Date();
-                    await tableOrder.save({ session });
-                });
-
-                return response.status(200).json({
-                    message: 'Thanh toán thành công',
-                    error: false,
-                    success: true,
-                    data: {
-                        totalPaid: tableOrder.total,
-                        paymentMethod: 'cash'
-                    }
-                });
-
-            } finally {
-                await session.endSession();
-            }
+            return response.status(200).json({
+                message: 'Yeu cau thanh toan tai quay da duoc gui. Nhan vien se den ho tro ban.',
+                error: false,
+                success: true,
+                data: { paymentMethod: 'at_counter' }
+            });
 
         } else {
             // Online payment - create Stripe session
@@ -372,7 +348,7 @@ export async function getAllActiveTableOrders(request, response) {
         const userId = request.userId;
 
         const user = await UserModel.findById(userId);
-        if (!user || !['ADMIN', 'MANAGER', 'WAITER', 'CHEF'].includes(user.role)) {
+        if (!user || !['ADMIN', 'WAITER', 'CHEF'].includes(user.role)) {
             return response.status(403).json({
                 message: 'Không có quyền truy cập',
                 error: true,
@@ -397,6 +373,169 @@ export async function getAllActiveTableOrders(request, response) {
             message: error.message || 'Lỗi khi lấy danh sách đơn hàng',
             error: true,
             success: false
+        });
+    }
+}
+
+// AC3 - List all at-counter pending payment orders (for Cashier dashboard)
+export async function getCashierPendingOrders(request, response) {
+    try {
+        const user = await UserModel.findById(request.userId);
+        if (!user || !['ADMIN', 'CASHIER'].includes(user.role)) {
+            return response.status(403).json({
+                message: 'Khong co quyen truy cap',
+                error: true, success: false
+            });
+        }
+
+        const orders = await TableOrderModel.find({
+            status: 'pending_payment',
+            paymentRequest: 'at_counter'
+        }).sort({ checkedOutAt: 1 });
+
+        return response.status(200).json({
+            message: 'Danh sach don cho thanh toan',
+            error: false,
+            success: true,
+            data: orders
+        });
+    } catch (error) {
+        return response.status(500).json({
+            message: error.message || 'Loi server',
+            error: true, success: false
+        });
+    }
+}
+
+// AC9-12 - Cashier confirms cash payment
+export async function confirmCashierPayment(request, response) {
+    try {
+        const user = await UserModel.findById(request.userId);
+        if (!user || !['ADMIN', 'CASHIER'].includes(user.role)) {
+            return response.status(403).json({
+                message: 'Khong co quyen thuc hien',
+                error: true, success: false
+            });
+        }
+
+        const { tableOrderId } = request.body;
+
+        const tableOrder = await TableOrderModel.findById(tableOrderId);
+        if (!tableOrder) {
+            return response.status(404).json({
+                message: 'Khong tim thay hoa don.',
+                error: true, success: false
+            });
+        }
+
+        if (tableOrder.status !== 'pending_payment') {
+            return response.status(400).json({
+                message: 'Thanh toan chua hoan tat. Vui long kiem tra lai.',
+                error: true, success: false
+            });
+        }
+
+        const session = await mongoose.startSession();
+        try {
+            await session.withTransaction(async () => {
+                const orderItems = tableOrder.items.map(item => ({
+                    userId: request.userId,
+                    orderId: `ORD-${new mongoose.Types.ObjectId()}`,
+                    productId: item.productId,
+                    product_details: { name: item.name, image: [] },
+                    quantity: item.quantity,
+                    payment_status: 'Da thanh toan',
+                    delivery_address: null,
+                    customerContact: null,
+                    subTotalAmt: item.price * item.quantity,
+                    totalAmt: item.price * item.quantity,
+                    status: 'delivered',
+                    tableNumber: tableOrder.tableNumber,
+                    orderType: 'dine_in'
+                }));
+                await OrderModel.insertMany(orderItems, { session });
+
+                tableOrder.status = 'paid';
+                tableOrder.paymentMethod = 'cash';
+                tableOrder.paidAt = new Date();
+                await tableOrder.save({ session });
+            });
+
+            return response.status(200).json({
+                message: 'Thanh toan thanh cong. Don hang da duoc hoan tat.',
+                error: false,
+                success: true,
+                data: { totalPaid: tableOrder.total, tableNumber: tableOrder.tableNumber }
+            });
+        } finally {
+            await session.endSession();
+        }
+    } catch (error) {
+        console.error('Error confirming cashier payment:', error);
+        return response.status(500).json({
+            message: error.message || 'Loi xac nhan thanh toan',
+            error: true, success: false
+        });
+    }
+}
+
+// Waiter huỷ một món trong đơn (chỉ khi kitchenStatus === 'pending')
+export async function cancelTableOrderItem(request, response) {
+    try {
+        const user = await UserModel.findById(request.userId);
+        if (!user || !['ADMIN', 'WAITER'].includes(user.role)) {
+            return response.status(403).json({
+                message: 'Không có quyền huỷ món',
+                error: true, success: false
+            });
+        }
+
+        const { orderId, itemId } = request.params;
+
+        const tableOrder = await TableOrderModel.findById(orderId);
+        if (!tableOrder) {
+            return response.status(404).json({
+                message: 'Không tìm thấy đơn hàng',
+                error: true, success: false
+            });
+        }
+
+        const item = tableOrder.items.id(itemId);
+        if (!item) {
+            return response.status(404).json({
+                message: 'Không tìm thấy món trong đơn',
+                error: true, success: false
+            });
+        }
+
+        if (item.kitchenStatus !== 'pending') {
+            return response.status(400).json({
+                message: `Không thể huỷ món đang ở trạng thái "${item.kitchenStatus}". Chỉ huỷ được món chờ bếp.`,
+                error: true, success: false
+            });
+        }
+
+        // Xoá item khỏi mảng
+        tableOrder.items.pull(itemId);
+
+        // Tính lại tổng
+        const subTotal = tableOrder.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+        tableOrder.subTotal = subTotal;
+        tableOrder.total = Math.max(0, subTotal - (tableOrder.discount || 0));
+
+        await tableOrder.save();
+
+        return response.status(200).json({
+            message: 'Đã huỷ món thành công',
+            error: false, success: true,
+            data: { orderId, itemId, newTotal: tableOrder.total }
+        });
+
+    } catch (error) {
+        console.error('cancelTableOrderItem error:', error);
+        return response.status(500).json({
+            message: error.message || 'Lỗi server',
+            error: true, success: false
         });
     }
 }

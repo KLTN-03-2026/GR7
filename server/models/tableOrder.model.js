@@ -99,7 +99,7 @@ const tableOrderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'paid', 'cancelled'],
+        enum: ['active', 'pending_payment', 'paid', 'cancelled'],
         default: 'active'
     },
     // Trạng thái gửi bếp
@@ -108,6 +108,15 @@ const tableOrderSchema = new mongoose.Schema({
         default: false
     },
     sentToKitchenAt: {
+        type: Date,
+        default: null
+    },
+    paymentRequest: {
+        type: String,
+        enum: ['at_counter', 'online', null],
+        default: null
+    },
+    checkedOutAt: {
         type: Date,
         default: null
     },

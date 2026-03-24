@@ -24,6 +24,7 @@ import customerRouter from './route/customer.route.js';
 import kitchenRouter from './route/kitchen.route.js';
 import { registerSupportChatSocket } from "./socket/supportChat.socket.js";
 import { registerKitchenSocket } from "./socket/kitchen.socket.js";
+import serviceRequestRouter from './route/serviceRequest.route.js';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -103,6 +104,7 @@ app.use('/api/customer', customerRouter);
 app.use('/api/kitchen', kitchenRouter);
 import orderRouter from './route/order.route.js';
 app.use('/api/order', orderRouter);
+app.use('/api/service-request', serviceRequestRouter);
 
 
 connectDB().then(() => {
