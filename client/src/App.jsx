@@ -20,6 +20,8 @@ import LiquidEther from './components/LiquidEther';
 import AiChatBox from './components/AiChatBox';
 import SupportChatBox from './components/SupportChatBox';
 import { SupportChatProvider } from './contexts/SupportChatContext';
+import LightPillarClient from '@/components/animations/LightPillarClient';
+import Plasma from './components/animations/Plasma';
 
 function App() {
     const dispatch = useDispatch();
@@ -92,16 +94,26 @@ function App() {
 
     const liquidEther = (
         <div className="fixed inset-0 z-0 pointer-events-none">
-            <LiquidEther
-                colors={['#f5e6d3', '#e8d5c4', '#d4a574']}
-                isViscous={false}
-                iterationsViscous={8}
-                iterationsPoisson={8}
-                resolution={0.3}
-                autoDemo={true}
-                autoSpeed={0.2}
-                autoRampDuration={0.8}
-                style={{ width: '100%', height: '100%' }}
+            {/* <LightPillarClient
+                topColor="#f5e6d3"
+                bottomColor="#d4a574"
+                intensity={1.0}
+                rotationSpeed={0.8}
+                interactive={true}
+                glowAmount={0.002}
+                pillarWidth={3.0}
+                pillarHeight={0.5}
+                noiseIntensity={0.1}
+                mixBlendMode="screen"
+                pillarRotation={15}
+            /> */}
+            <Plasma
+                direction="pingpong"
+                color="#d4a574"
+                speed={2.5}
+                opacity={1}
+                scale={0.5}
+                mouseInteractive={true}
             />
         </div>
     );
