@@ -1,15 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Axios from '../utils/Axios';
 import SummaryApi from '../common/SummaryApi';
 import AxiosToastError from '../utils/AxiosToastError';
-import { Bot, X, Send, Minimize2, Sparkles, ChevronDown } from 'lucide-react';
+import {
+    Bot,
+    X,
+    Send,
+    Minimize2,
+    Sparkles,
+    ChevronDown,
+    Maximize,
+} from 'lucide-react';
 
 // Quick suggestion buttons
 const QUICK_SUGGESTIONS = [
-    'Cửa hàng bán sản phẩm gì?',
-    'Chính sách đổi trả?',
-    'Cách đặt hàng?',
-    'Có mã giảm giá không?',
+    'Món đặc biệt của nhà hàng?',
+    'Có món nào cay không?',
+    'Món chay có gì?',
+    'Món nào nhanh nhất?',
 ];
 
 function ChatBubble({ role, text }) {
@@ -222,6 +231,13 @@ export default function AiChatBox() {
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
+                            <Link
+                                to={'/dashboard/chat-support-customer'}
+                                className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
+                                title="Mở rộng"
+                            >
+                                <Maximize size={16} />
+                            </Link>
                             <button
                                 onClick={handleMinimize}
                                 className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"

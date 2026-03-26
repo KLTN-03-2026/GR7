@@ -1,6 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSelector } from 'react-redux';
-import { getSocket, destroySocket } from '../utils/socket';
+import { useState, useRef, useEffect } from 'react';
 import {
     MessageCircle,
     X,
@@ -9,17 +7,23 @@ import {
     Headphones,
     Wifi,
     WifiOff,
+    Maximize,
 } from 'lucide-react';
-
-// Dùng prefix để phân biệt guest session và user session
-const GUEST_STORAGE_KEY = 'tc_support_conv_guest';
-const USER_STORAGE_KEY_PREFIX = 'tc_support_conv_user_';
-
-function getStorageKey(userId) {
-    return userId ? `${USER_STORAGE_KEY_PREFIX}${userId}` : GUEST_STORAGE_KEY;
-}
+import { Link } from 'react-router-dom';
+import { useSupportChat } from '../contexts/SupportChatContext';
 
 function ChatBubble({ msg }) {
+    // Handle system messages
+    if (msg.senderRole === 'system') {
+        return (
+            <div className="flex justify-center mb-3">
+                <div className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400">
+                    {msg.text}
+                </div>
+            </div>
+        );
+    }
+    
     const isUser = msg.senderRole === 'customer';
     return (
         <div
@@ -66,35 +70,39 @@ function TypingIndicator() {
 }
 
 export default function SupportChatBox() {
-    const user = useSelector((state) => state.user);
+    const {
+        messages,
+        connected,
+        isClosed,
+        adminTyping,
+        requestStatus,
+        assignedWaiterName,
+        nameEntered,
+        guestName,
+        customerName,
+        showNameForm,
+        initializeConnection,
+        submitGuestName,
+        sendMessage,
+        startNewChat,
+    } = useSupportChat();
 
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
-    const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
-    const [connected, setConnected] = useState(false);
-    const [isClosed, setIsClosed] = useState(false);
-    const [adminTyping, setAdminTyping] = useState(false);
     const [hasNewMessage, setHasNewMessage] = useState(false);
-    const [guestName, setGuestName] = useState('');
-    // nameEntered: true nếu user đã đăng nhập hoặc guest đã nhập tên
-    const [nameEntered, setNameEntered] = useState(false);
+    const [tempGuestName, setTempGuestName] = useState('');
 
-    const conversationIdRef = useRef(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
-    const socketRef = useRef(null);
-    const typingTimeoutRef = useRef(null);
-    // Lưu userId trước đó để phát hiện thay đổi auth state
-    const prevUserIdRef = useRef(null);
 
-    const scrollToBottom = useCallback(() => {
+    const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, []);
+    };
 
     useEffect(() => {
         if (isOpen && !isMinimized) scrollToBottom();
-    }, [messages, isOpen, isMinimized, scrollToBottom]);
+    }, [messages, isOpen, isMinimized]);
 
     useEffect(() => {
         if (isOpen && !isMinimized) {
@@ -103,204 +111,40 @@ export default function SupportChatBox() {
         }
     }, [isOpen, isMinimized]);
 
-    // Hàm đăng ký các socket event listeners
-    const registerSocketEvents = useCallback(
-        (socket, resolvedName, resolvedUserId) => {
-            // Dọn listener cũ trước khi đăng ký mới
-            socket.off('connect');
-            socket.off('conversation:joined');
-            socket.off('message:new');
-            socket.off('admin:typing');
-            socket.off('conversation:closed');
-            socket.off('disconnect');
-            socket.off('reconnect');
-
-            const storageKey = getStorageKey(resolvedUserId);
-            const savedConvId = localStorage.getItem(storageKey);
-            if (savedConvId) conversationIdRef.current = savedConvId;
-
-            const doJoin = () => {
-                socket.emit('customer:join', {
-                    conversationId: conversationIdRef.current,
-                    customerName: resolvedName,
-                    customerId: resolvedUserId || null,
-                });
-            };
-
-            socket.on('connect', () => {
-                setConnected(true);
-                doJoin();
-            });
-
-            socket.on(
-                'conversation:joined',
-                ({ conversationId, messages: history, status }) => {
-                    conversationIdRef.current = conversationId;
-                    localStorage.setItem(storageKey, conversationId);
-                    setMessages(history || []);
-                    setIsClosed(status === 'closed');
-                }
-            );
-
-            socket.on('message:new', (msg) => {
-                setMessages((prev) => [...prev, msg]);
-                if (!isOpen || isMinimized) setHasNewMessage(true);
-                if (msg.senderRole === 'admin') setAdminTyping(false);
-            });
-
-            socket.on('admin:typing', () => {
-                setAdminTyping(true);
-                clearTimeout(typingTimeoutRef.current);
-                typingTimeoutRef.current = setTimeout(
-                    () => setAdminTyping(false),
-                    3000
-                );
-            });
-
-            socket.on('conversation:closed', () => setIsClosed(true));
-
-            socket.on('disconnect', () => setConnected(false));
-
-            socket.on('reconnect', () => {
-                doJoin();
-            });
-        },
-        [isOpen, isMinimized]
-    );
-
-    // Hàm kết nối socket và join conversation
-    const connectAndJoin = useCallback(
-        (name, userId) => {
-            const socket = getSocket();
-            socketRef.current = socket;
-
-            registerSocketEvents(socket, name, userId);
-
-            if (!socket.connected) {
-                socket.connect();
-            } else {
-                // Đã kết nối sẵn, emit join ngay
-                setConnected(true);
-                socket.emit('customer:join', {
-                    conversationId: conversationIdRef.current,
-                    customerName: name,
-                    customerId: userId || null,
-                });
-            }
-        },
-        [registerSocketEvents]
-    );
-
-    // ============================================================
-    // Xử lý thay đổi auth state (guest → logged-in hoặc logout)
-    // ============================================================
+    // Monitor for new messages when chat is closed/minimized
     useEffect(() => {
-        const currentUserId = user?._id || null;
-        const prevUserId = prevUserIdRef.current;
-
-        // Bỏ qua lần render đầu tiên chưa có sự thay đổi
-        if (prevUserId === currentUserId) return;
-
-        prevUserIdRef.current = currentUserId;
-
-        // Phát hiện: user đã đăng nhập (guest → user hoặc user thay đổi)
-        if (currentUserId) {
-            // Reset session guest, chuyển sang session user
-            conversationIdRef.current = null;
-            setMessages([]);
-            setIsClosed(false);
-            setAdminTyping(false);
-            setHasNewMessage(false);
-            setNameEntered(true); // logged-in user không cần nhập tên
-            setGuestName('');
-
-            // Ngắt socket cũ và xoá singleton để có thể tạo fresh instance
-            destroySocket();
-            socketRef.current = null;
-            setConnected(false);
-
-            // Kết nối lại với thông tin user mới (chỉ khi chat đang mở)
-            if (isOpen) {
-                connectAndJoin(user.name || 'Khách', currentUserId);
+        if ((!isOpen || isMinimized) && messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage.senderRole === 'admin' || lastMessage.senderRole === 'waiter') {
+                setHasNewMessage(true);
             }
-        } else {
-            // User đã logout → reset về trạng thái guest
-            conversationIdRef.current = null;
-            setMessages([]);
-            setIsClosed(false);
-            setNameEntered(false);
-            setGuestName('');
-            setHasNewMessage(false);
-
-            // Xoá conversation guest cũ khỏi localStorage
-            // để phiên khách vãng lai mới không join vào cuộc chat cũ
-            localStorage.removeItem(GUEST_STORAGE_KEY);
-
-            // Ngắt socket cũ và xoá singleton
-            destroySocket();
-            socketRef.current = null;
-            setConnected(false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?._id]);
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            clearTimeout(typingTimeoutRef.current);
-            // Không destroy singleton khi unmount (context admin cũng dùng socket)
-            // Chỉ remove các listeners của component này
-            if (socketRef.current) {
-                socketRef.current.off('connect');
-                socketRef.current.off('conversation:joined');
-                socketRef.current.off('message:new');
-                socketRef.current.off('admin:typing');
-                socketRef.current.off('conversation:closed');
-                socketRef.current.off('disconnect');
-                socketRef.current.off('reconnect');
-            }
-        };
-    }, []);
+    }, [messages, isOpen, isMinimized]);
 
     const handleOpen = () => {
+        console.log('[SupportChatBox] handleOpen called');
         setIsOpen(true);
         setIsMinimized(false);
         setHasNewMessage(false);
-
-        const isLoggedIn = !!user?._id;
-        const shouldConnect = isLoggedIn || nameEntered;
-
-        if (shouldConnect && !socketRef.current?.connected) {
-            const name = isLoggedIn ? user.name || 'Khách' : guestName;
-            const userId = isLoggedIn ? user._id : null;
-            // Đọc đúng key từ storage nếu chưa có trong ref
-            if (!conversationIdRef.current) {
-                conversationIdRef.current =
-                    localStorage.getItem(getStorageKey(userId)) || null;
-            }
-            connectAndJoin(name, userId);
-        }
+        
+        // Initialize connection when opening chat
+        initializeConnection();
     };
 
     const handleNameSubmit = (e) => {
         e.preventDefault();
-        if (!guestName.trim()) return;
-        const name = guestName.trim();
-        setNameEntered(true);
-        conversationIdRef.current =
-            localStorage.getItem(GUEST_STORAGE_KEY) || null;
-        connectAndJoin(name, null);
+        if (!tempGuestName.trim()) return;
+        
+        console.log('[SupportChatBox] handleNameSubmit called with name:', tempGuestName);
+        submitGuestName(tempGuestName.trim());
+        setTempGuestName('');
     };
 
     const handleSend = () => {
         const text = input.trim();
-        if (!text || isClosed || !socketRef.current?.connected) return;
-
-        socketRef.current.emit('customer:message', {
-            conversationId: conversationIdRef.current,
-            text,
-            senderName: user?.name || guestName || 'Khách',
-        });
+        if (!text) return;
+        
+        sendMessage(text);
         setInput('');
     };
 
@@ -312,34 +156,9 @@ export default function SupportChatBox() {
     };
 
     const handleNewChat = () => {
-        // Xóa conversation cũ khỏi storage và state
-        const storageKey = getStorageKey(user?._id || null);
-        localStorage.removeItem(storageKey);
-        conversationIdRef.current = null;
-
-        // Ngắt socket cũ
-        destroySocket();
-        socketRef.current = null;
-        setConnected(false);
-
-        // Reset UI
-        setMessages([]);
-        setIsClosed(false);
-        setAdminTyping(false);
+        startNewChat();
         setInput('');
-
-        // Nếu là guest, hiện lại form nhập tên
-        if (!user?._id) {
-            setNameEntered(false);
-            setGuestName('');
-        } else {
-            // Nếu đã đăng nhập, tự động kết nối mới luon
-            connectAndJoin(user.name || 'Khách', user._id);
-        }
     };
-
-    const customerName = user?.name || guestName || 'Khách';
-    const showNameForm = !nameEntered && !user?._id;
 
     return (
         <>
@@ -405,6 +224,13 @@ export default function SupportChatBox() {
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
+                            <Link
+                                to={'/dashboard/chat-support-customer'}
+                                className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
+                                title="Mở rộng"
+                            >
+                                <Maximize size={16} />
+                            </Link>
                             <button
                                 onClick={() => setIsMinimized(true)}
                                 className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
@@ -457,9 +283,9 @@ export default function SupportChatBox() {
                                         className="w-full flex flex-col gap-3"
                                     >
                                         <input
-                                            value={guestName}
+                                            value={tempGuestName}
                                             onChange={(e) =>
-                                                setGuestName(e.target.value)
+                                                setTempGuestName(e.target.value)
                                             }
                                             placeholder="Nhập tên của bạn..."
                                             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:border-teal-400 transition"
@@ -477,7 +303,31 @@ export default function SupportChatBox() {
                                 <>
                                     {/* Messages */}
                                     <div className="flex-1 overflow-y-auto px-3 pt-4 pb-2 scroll-smooth">
-                                        {messages.length === 0 && (
+                                        {/* Waiting status banner */}
+                                        {requestStatus === 'waiting' && (
+                                            <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                                                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                                                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                                    <p className="text-xs font-medium">
+                                                        Đang chờ nhân viên phục vụ...
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Assigned status banner */}
+                                        {(requestStatus === 'assigned' || requestStatus === 'active') && assignedWaiterName && (
+                                            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                                                <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                                    <p className="text-xs font-medium">
+                                                        {assignedWaiterName} đang hỗ trợ bạn
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {messages.length === 0 && requestStatus !== 'waiting' && (
                                             <div className="text-center text-sm text-gray-400 mt-6">
                                                 <p>
                                                     👋 Xin chào {customerName}!
