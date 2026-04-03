@@ -8,8 +8,15 @@ const STATUS_MAP = {
     'pending':   'Chờ xử lý',
     'paid':      'Đã thanh toán',
     'refunded':  'Đã hoàn tiền',
+    'Chờ xử lý': 'Chờ xử lý',
+    'Đang chuẩn bị': 'Đang chuẩn bị',
+    'Đã phục vụ': 'Đã phục vụ',
+    'Đang chờ thanh toán': 'Đang chờ thanh toán',
+    'Chờ thanh toán': 'Chờ thanh toán',
+    'Đã thanh toán': 'Đã thanh toán',
+    'Đã hủy': 'Đã hủy',
     // status field
-    'active':           'Chờ xử lý',
+    'active':           'active',
     'pending_payment':  'Chờ thanh toán',
     'cancelled':        'Đã hủy',
 };
@@ -18,8 +25,14 @@ function mapPaymentStatus(paymentStatus, status) {
     // paymentStatus 'paid' takes priority
     if (paymentStatus === 'paid') return 'Đã thanh toán';
     if (paymentStatus === 'refunded') return 'Đã hoàn tiền';
+    // If we have a Vietnamese paymentStatus, use it
+    if (['Đang chuẩn bị', 'Đã phục vụ', 'Đang chờ thanh toán', 'Chờ thanh toán', 'Chờ xử lý'].includes(paymentStatus)) {
+        return paymentStatus;
+    }
     // fallback to order status
-    return STATUS_MAP[status] || STATUS_MAP[paymentStatus] || 'Chờ xử lý';
+    const mappedStatus = STATUS_MAP[status];
+    if (mappedStatus && mappedStatus !== 'active') return mappedStatus;
+    return STATUS_MAP[paymentStatus] || 'Chờ xử lý';
 }
 
 export const updateOrderStatus = createAsyncThunk(

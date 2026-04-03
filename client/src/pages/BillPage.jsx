@@ -157,7 +157,7 @@ const InvoicesTab = () => {
             await dispatch(fetchAllOrders(filterParams)).unwrap();
             toast.success(`Cập nhật trạng thái thành "${status}" thành công!`);
             setOpenUpdateStatus(false); setOpenPaymentConfirm(false); setOpenCancelConfirm(false); setOpenDetailView(false); setSelectedOrder(null); setCancelReason('');
-        } catch (error) { toast.error(error?.message || 'Cập nhật thất bại'); }
+        } catch (error) { toast.error(typeof error === 'string' ? error : (error?.message || 'Cập nhật thất bại')); }
         finally { setIsUpdatingSubStatus(false); }
     };
 

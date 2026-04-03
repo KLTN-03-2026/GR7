@@ -89,7 +89,7 @@ const tableOrderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'pending_payment', 'paid', 'cancelled'],
+        enum: ['active', 'pending_payment', 'paid', 'cancelled', 'Chờ xử lý', 'Đang chuẩn bị', 'Đã phục vụ', 'Đang chờ thanh toán', 'Chờ thanh toán', 'Đã hủy'],
         default: 'active'
     },
     sentToKitchenAt: {
@@ -116,7 +116,7 @@ const tableOrderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'refunded'],
+        enum: ['pending', 'paid', 'refunded', 'Chờ xử lý', 'Đang chuẩn bị', 'Đã phục vụ', 'Đang chờ thanh toán', 'Chờ thanh toán', 'Đã hủy'],
         default: 'pending'
     },
     paymentId: {
