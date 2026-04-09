@@ -662,10 +662,10 @@ function KitchenItemCard({ item, status, onUpdateStatus, isUpdating, tablesMap, 
                     )}
                 </div>
                 {waitMinutes !== null && (
-                    <span className={`flex items-center gap-1 text-xs font-medium ${
+                    <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
                         waitMinutes > 15 
-                            ? 'text-red-500 dark:text-red-400' 
-                            : 'text-muted-foreground'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 animate-pulse' 
+                            : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
                     }`}>
                         <FiClock size={11} />
                         {waitMinutes}p

@@ -43,7 +43,7 @@ export const getActiveKitchenItems = async (req, res) => {
                         quantity: item.quantity,
                         note: item.note,
                         kitchenStatus: item.kitchenStatus,
-                        sentAt: item.sentAt || order.createdAt,
+                        sentAt: item.sentAt || item.addedAt || order.createdAt,
                     });
                 }
             });
