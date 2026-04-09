@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Axios from '../utils/Axios';
 import toast from 'react-hot-toast';
-import { FiClock, FiCheckCircle, FiRefreshCw, FiWifi, FiWifiOff } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiRefreshCw, FiWifi, FiWifiOff, FiMaximize, FiMinimize, FiCheck, FiX } from 'react-icons/fi';
 import { GiCookingPot } from 'react-icons/gi';
 import { BsBellFill } from 'react-icons/bs';
 import { MdOutlineRestaurantMenu } from 'react-icons/md';
@@ -71,6 +71,10 @@ const ChefDashboard = () => {
     const [connected, setConnected] = useState(false);
     const [clock, setClock] = useState(new Date());
     const [updatingId, setUpdatingId] = useState(null);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [tablesMap, setTablesMap] = useState({});
+    const [searchQuery, setSearchQuery] = useState('');
+    const [expandedTables, setExpandedTables] = useState(new Set());
     const socketRef = useRef(null);
 
     useEffect(() => {
@@ -169,11 +173,43 @@ const ChefDashboard = () => {
         }
     };
 
-    // Group items by table
-    const grouped = items.reduce((acc, item) => {
-        const key = item.tableId?.name || item.tableId?.tableName || item.tableId?._id || 'Không rõ';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(item);
+    // Group items by status (Kanban columns)
+    const itemsByStatus = {
+        pending: items.filter(i => i.kitchenStatus === 'pending'),
+        cooking: items.filter(i => i.kitchenStatus === 'cooking'),
+        ready: items.filter(i => i.kitchenStatus === 'ready'),
+    };
+
+    // Group pending items by table with smart sorting
+    const pendingByTable = itemsByStatus.pending.reduce((acc, item) => {
+        let tableName = 'Không rõ';
+        if (item.tableId) {
+            if (typeof item.tableId === 'object') {
+                tableName = item.tableId.tableNumber || item.tableId.name || item.tableId.tableName || tablesMap[item.tableId._id] || item.tableId._id;
+            } else {
+                tableName = tablesMap[item.tableId] || item.tableId;
+            }
+        }
+        
+        if (!acc[tableName]) {
+            acc[tableName] = {
+                tableName,
+                items: [],
+                oldestTime: item.sentAt ? new Date(item.sentAt).getTime() : Date.now(),
+                totalItems: 0,
+            };
+        }
+        acc[tableName].items.push(item);
+        acc[tableName].totalItems++;
+        
+        // Track oldest item time for this table
+        if (item.sentAt) {
+            const itemTime = new Date(item.sentAt).getTime();
+            if (itemTime < acc[tableName].oldestTime) {
+                acc[tableName].oldestTime = itemTime;
+            }
+        }
+        
         return acc;
     }, {});
 
@@ -196,15 +232,19 @@ const ChefDashboard = () => {
         )
         : pendingTableGroups;
 
+    const hasAutoExpanded = useRef(false);
+
     // Auto-expand top 3 priority tables on first load
     useEffect(() => {
-        if (filteredPendingGroups.length > 0 && expandedTables.size === 0) {
+        if (filteredPendingGroups.length > 0 && !hasAutoExpanded.current) {
             const topTables = new Set(
                 filteredPendingGroups.slice(0, 3).map(g => g.tableName)
             );
             setExpandedTables(topTables);
+            hasAutoExpanded.current = true;
         }
-    }, [filteredPendingGroups, expandedTables.size]);
+    }, [filteredPendingGroups]);
+
 
     const toggleTableExpand = (tableName) => {
         setExpandedTables(prev => {
@@ -254,10 +294,17 @@ const ChefDashboard = () => {
         : 0;
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
+        <div className={`h-full bg-background text-foreground transition-all duration-300 ${
+            isExpanded ? 'fixed inset-0 z-[9999] overflow-y-auto w-full h-full' : 'relative'
+        }`}>
             {/* Header */}
-            <div className="bg-gray-900 border-b border-gray-800 px-6 py-4 sticky top-0 z-10">
-                <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
+            <div className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10 w-full shadow-sm"
+                style={{
+                    background: 'rgba(var(--card-rgb, 255, 255, 255), 0.95)',
+                    backdropFilter: 'blur(12px)',
+                }}
+            >
+                <div className="w-full flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                             style={{
@@ -323,18 +370,27 @@ const ChefDashboard = () => {
                             {connected ? <FiWifi size={12} /> : <FiWifiOff size={12} />}
                             {connected ? 'Real-time' : 'Offline'}
                         </div>
-                        <button
-                            onClick={fetchItems}
-                            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-xl transition text-sm"
-                        >
-                            <FiRefreshCw size={14} /> Làm mới
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={toggleExpanded}
+                                title={isExpanded ? "Thu nhỏ" : "Phóng to"}
+                                className="flex items-center justify-center bg-card hover:bg-accent border border-border w-10 h-10 rounded-xl transition text-foreground active:scale-95"
+                            >
+                                {isExpanded ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
+                            </button>
+                            <button
+                                onClick={fetchItems}
+                                className="flex items-center gap-2 bg-card hover:bg-accent border border-border px-3 py-2 h-10 rounded-xl transition text-sm text-foreground active:scale-95"
+                            >
+                                <FiRefreshCw size={14} /> Làm mới
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="max-w-screen-xl mx-auto p-6">
+            {/* Content - Kanban Board */}
+            <div className="w-full p-4">
                 {loading ? (
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 mr-3" style={{ borderColor: '#C96048' }} />
