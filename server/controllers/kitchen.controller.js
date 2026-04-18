@@ -27,7 +27,14 @@ export const getActiveKitchenItems = async (req, res) => {
             "items.kitchenStatus": { $in: ["pending", "cooking"] },
         })
             .populate("tableId", "name tableName tableNumber")
-            .populate("items.productId", "name image price")
+            .populate({
+                path: "items.productId",
+                select: "name image price category",
+                populate: {
+                    path: "category",
+                    select: "name"
+                }
+            })
             .sort({ createdAt: 1 });
 
         // Flatten items cần nấu, kèm thông tin bàn

@@ -681,9 +681,9 @@ function KitchenItemCard({ item, status, onUpdateStatus, isUpdating, tablesMap, 
                             {item.product?.name || 'Món ăn'}
                         </h3>
                         <div className="flex items-center gap-3 text-sm">
-                            <span className="text-muted-foreground">
-                                <MdOutlineRestaurantMenu className="inline mr-1" size={14} />
-                                Main Course
+                            <span className="text-muted-foreground flex items-center">
+                                <MdOutlineRestaurantMenu className="inline mr-1 shrink-0" size={14} />
+                                <span className="line-clamp-1">{item.product?.category?.[0]?.name || 'Món ăn'}</span>
                             </span>
                             <span className="font-semibold" style={{ color: '#C96048' }}>
                                 x{item.quantity}
