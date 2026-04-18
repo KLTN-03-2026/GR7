@@ -787,7 +787,7 @@ export default function WaiterBoardPage() {
                                 tableOrders
                                     .filter(order => 
                                         searchTableQuery.trim() === '' || 
-                                        order.tableNumber.toString().includes(searchTableQuery.toLowerCase())
+                                        (order.tableNumber && order.tableNumber.toString().toLowerCase().includes(searchTableQuery.trim().toLowerCase()))
                                     )
                                     .map((order) => (
                                         <div key={order._id} className="rounded-2xl overflow-hidden border border-border transition-all hover:shadow-lg active:scale-[0.99]"
