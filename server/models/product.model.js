@@ -20,8 +20,6 @@ const productSchema = new mongoose.Schema({
             ref: 'subCategory',
         }
     ],
-    // 'stock' đã xóa — nhà hàng dùng status:'available'|'out_of_stock' thay vì số tồn kho
-    // 'unit' đã xóa — không cần đơn vị (“kg”, “L”) cho món ăn nhà hàng
     price: {
         type: Number,
         default: 0,
@@ -42,7 +40,11 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
-    // Trạng thái món ăn
+    
+    stock: {
+        type: Number,
+        default: null, // null = không giới hạn
+    },
     status: {
         type: String,
         enum: ['available', 'out_of_stock', 'seasonal'],
@@ -76,6 +78,21 @@ const productSchema = new mongoose.Schema({
 }, {
     timestamps: true
 })
+
+// Middleware: Tự động cập nhật status dựa trên stock
+productSchema.pre('save', function(next) {
+    // Chỉ tự động cập nhật nếu không phải 'seasonal'
+    if (this.status !== 'seasonal') {
+        if (this.stock === null) {
+            this.status = 'available'; // Unlimited
+        } else if (this.stock === 0) {
+            this.status = 'out_of_stock';
+        } else if (this.stock > 0) {
+            this.status = 'available';
+        }
+    }
+    next();
+});
 
 // Tạo text index cho name & description với trọng số (weights)
 productSchema.index(
