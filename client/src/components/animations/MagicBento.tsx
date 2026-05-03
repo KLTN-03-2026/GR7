@@ -214,7 +214,9 @@ export const BentoCard: React.FC<{
 
                     <div className="bento-card__header">
                         {card.icon && (
-                            <span className="bento-card__icon">{card.icon}</span>
+                            <span className="bento-card__icon">
+                                {card.icon}
+                            </span>
                         )}
                         <span className="bento-card__label">{card.label}</span>
                     </div>
@@ -230,16 +232,18 @@ export const BentoCard: React.FC<{
                         {/* Stars for rating cards */}
                         {card.stars && (
                             <div className="bento-card__stars">
-                                {Array.from({ length: card.stars }).map((_, i) => (
-                                    <svg
-                                        key={i}
-                                        className="star-icon"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                    </svg>
-                                ))}
+                                {Array.from({ length: card.stars }).map(
+                                    (_, i) => (
+                                        <svg
+                                            key={i}
+                                            className="star-icon"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                        >
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                        </svg>
+                                    )
+                                )}
                             </div>
                         )}
 
@@ -320,6 +324,40 @@ export const MagicBentoStyles: React.FC<{
       .bento-grid .bento-card:nth-child(4) { grid-column: 1 / span 2; grid-row: 2 / span 2; }
       .bento-grid .bento-card:nth-child(6) { grid-column: 4; grid-row: 3; }
     }
+
+    @media (min-width: 1024px) {
+  .login-bento-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: 160px;          /* chiều cao mỗi row, tăng/giảm tuỳ ý */
+  }
+
+  .login-bento-grid .bento-card:nth-child(3),
+  .login-bento-grid .bento-card:nth-child(4),
+  .login-bento-grid .bento-card:nth-child(6) {
+    grid-column: unset !important;
+    grid-row: unset !important;
+  }
+
+  /* Bỏ aspect-ratio cứng để rowSpan hoạt động đúng */
+  .login-bento-grid .bento-card {
+    aspect-ratio: unset !important;
+    min-height: unset !important;
+  }
+}
+
+/* Làm sáng ảnh nền */
+.login-bento-grid .bento-card__bg-image {
+  opacity: 0.55 !important;        /* mặc định 0.15, tăng lên */
+}
+.login-bento-grid .bento-card:hover .bento-card__bg-image {
+  opacity: 0.75 !important;
+}
+
+/* Bỏ màu nền tối (để ảnh chiếm chủ đạo) */
+.login-bento-grid .bento-card {
+  background-color: transparent !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
 
     /* Spotlight toàn grid */
     .bento-grid::before {

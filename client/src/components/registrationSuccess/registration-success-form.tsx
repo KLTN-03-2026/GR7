@@ -7,7 +7,8 @@ import {
     FaHome,
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
-import GlareHover from '../GlareHover';
+import BorderGlow from '../animations/BorderGlow';
+import { Button } from '../ui/button';
 
 interface LocationState {
     email?: string;
@@ -33,35 +34,42 @@ const RegistrationSuccessForm: FC = () => {
     }
 
     return (
-        <div className="flex items-center justify-center text-sm text-foreground font-bold">
-            <div className="max-w-xl w-full space-y-8 sm:p-8 py-8 px-6">
-                <div className="text-center">
+        <div className="flex items-center justify-center text-foreground font-semibold">
+            <div className="max-w-2xl w-full space-y-8 p-8 bg-card/50 backdrop-blur-sm rounded-2xl border border-border shadow-xl">
+                <div className="text-center space-y-6">
+                    {/* Success Icon */}
                     <div className="flex justify-center">
-                        <div className="bg-orange-50 rounded-full p-3">
-                            <FaCheckCircle className="h-12 w-12 text-orange-700" />
+                        <div className="rounded-full p-4" style={{ backgroundColor: 'rgba(201, 96, 72, 0.1)' }}>
+                            <FaCheckCircle className="h-16 w-16" style={{ color: '#C96048' }} />
                         </div>
                     </div>
-                    <h2 className="mt-6 pb-2 text-xl uppercase font-extrabold text-orange-700">
+
+                    {/* Title */}
+                    <h2 className="text-3xl font-bold" style={{ color: '#C96048' }}>
                         Đăng ký thành công!
                     </h2>
-                    <div className="grid gap-4">
-                        <p className="flex items-center justify-center gap-2 opacity-90 text-orange-900">
+
+                    {/* Email Info */}
+                    <div className="space-y-4 text-base">
+                        <p className="flex items-center justify-center gap-2 text-muted-foreground">
                             <FaEnvelope className="mb-0.5" />
                             Vui lòng kiểm tra email của bạn
                         </p>
-                        <p>
+                        <p className="text-foreground">
                             Chúng tôi đã gửi một liên kết xác nhận đến:
-                            <span className="block font-bold mt-1 text-orange-800">
+                            <span className="block font-bold mt-2 text-lg" style={{ color: '#C96048' }}>
                                 {email}
                             </span>
                         </p>
-                        <p>
+                        <p className="text-muted-foreground">
                             Vui lòng kiểm tra hộp thư đến và nhấp vào liên kết
                             xác nhận để kích hoạt tài khoản của bạn.
                         </p>
-                        <div className="py-5 px-2 bg-background/80 rounded-md text-xs text-orange-900">
-                            <p>Lưu ý:</p>
-                            <ul className="mt-1 space-y-2 opacity-80">
+
+                        {/* Note Box */}
+                        <div className="py-4 px-4 bg-background/80 rounded-lg text-sm border border-border">
+                            <p className="font-bold mb-2" style={{ color: '#C96048' }}>Lưu ý:</p>
+                            <ul className="space-y-2 text-muted-foreground text-left list-disc list-inside">
                                 <li>
                                     Kiểm tra thư mục thư rác/spam nếu bạn không
                                     thấy email trong hộp thư đến
@@ -70,63 +78,61 @@ const RegistrationSuccessForm: FC = () => {
                             </ul>
                         </div>
                     </div>
-                </div>
-                <div className="mt-6 sm:text-sm text-xs">
-                    <div className="text-center">
-                        <p className="flex gap-1 items-center justify-center">
-                            Không nhận được email?
-                            <button
-                                className="font-medium text-red-700 hover:opacity-80"
-                                onClick={() => {
-                                    // TODO: Implement resend verification email
-                                    alert(
-                                        'Chức năng gửi lại email xác nhận sẽ được triển khai sau'
-                                    );
-                                }}
-                            >
-                                Gửi lại
-                            </button>
-                        </p>
-                    </div>
-                    <div className="mt-6">
-                        <div className="grid grid-cols-2 w-full gap-4 font-medium text-background">
-                            <GlareHover
-                                background="transparent"
-                                glareOpacity={0.3}
-                                glareAngle={-30}
-                                glareSize={300}
-                                transitionDuration={800}
-                                playOnce={false}
-                            >
-                                <Link
-                                    to="/"
-                                    className="flex justify-center items-center gap-2 bg-foreground w-full h-12 font-bold"
-                                >
-                                    <FaHome size={14} className="mb-0.5" />
-                                    Về trang chủ
-                                </Link>
-                            </GlareHover>
 
-                            <GlareHover
-                                background="transparent"
-                                glareOpacity={0.3}
-                                glareAngle={-30}
-                                glareSize={300}
-                                transitionDuration={800}
-                                playOnce={false}
-                            >
-                                <Link
-                                    to="/login"
-                                    className="flex justify-center items-center gap-2 bg-foreground w-full h-12 font-bold"
+                    {/* Resend Email */}
+                    <div className="text-center text-sm">
+                        <span className="text-muted-foreground">Không nhận được email? </span>
+                        <button
+                            className="font-semibold hover:opacity-80 transition-opacity hover:underline"
+                            style={{ color: '#C96048' }}
+                            onClick={() => {
+                                // TODO: Implement resend verification email
+                                toast.error('Chức năng gửi lại email xác nhận sẽ được triển khai sau');
+                            }}
+                        >
+                            Gửi lại
+                        </button>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-4 pt-4">
+                        <BorderGlow
+                            borderColor="#C96048"
+                            glowColor="#d97a66"
+                            animated={true}
+                            className="rounded-lg"
+                        >
+                            <Link to="/">
+                                <Button
+                                    className="w-full h-12 font-bold text-white text-base flex items-center justify-center gap-2"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                    }}
                                 >
-                                    <FaArrowRight
-                                        size={14}
-                                        className="mb-0.5"
-                                    />
-                                    Đi đến đăng nhập
-                                </Link>
-                            </GlareHover>
-                        </div>
+                                    <FaHome size={16} />
+                                    Về trang chủ
+                                </Button>
+                            </Link>
+                        </BorderGlow>
+
+                        <BorderGlow
+                            borderColor="#C96048"
+                            glowColor="#d97a66"
+                            animated={true}
+                            className="rounded-lg"
+                        >
+                            <Link to="/login">
+                                <Button
+                                    className="w-full h-12 font-bold text-white text-base flex items-center justify-center gap-2"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                    }}
+                                >
+                                    Đăng nhập
+                                    <FaArrowRight size={16} />
+                                </Button>
+                            </Link>
+                        </BorderGlow>
                     </div>
                 </div>
             </div>
