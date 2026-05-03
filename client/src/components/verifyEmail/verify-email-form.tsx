@@ -68,7 +68,7 @@ const VerifyEmailForm: FC = () => {
 
     return (
         <div className="flex items-center justify-center text-foreground font-semibold">
-            <div className="max-w-xl w-full space-y-8 p-8 bg-card/50 backdrop-blur-sm rounded-2xl border border-border shadow-xl">
+            <div className="max-w-xl w-full space-y-8 p-8 md:p-10 bg-card/50 backdrop-blur-sm rounded-2xl border border-border shadow-xl">
                 {isLoading ? (
                     <div className="text-center space-y-6">
                         <div className="flex justify-center">
@@ -99,13 +99,13 @@ const VerifyEmailForm: FC = () => {
                     <div className="text-center space-y-6">
                         {/* Error Icon */}
                         <div className="flex justify-center">
-                            <div className="rounded-full p-4 bg-red-100">
-                                <FaTimesCircle className="h-16 w-16 text-red-600" />
+                            <div className="rounded-full p-4 bg-red-100 dark:bg-red-900/20">
+                                <FaTimesCircle className="h-16 w-16 text-red-600 dark:text-red-400" />
                             </div>
                         </div>
 
                         {/* Title */}
-                        <h2 className="text-3xl font-bold text-red-600">
+                        <h2 className="text-3xl font-bold text-red-600 dark:text-red-400">
                             Xác nhận không thành công
                         </h2>
 
@@ -117,8 +117,6 @@ const VerifyEmailForm: FC = () => {
                         {/* Back Button */}
                         <div className="pt-4">
                             <BorderGlow
-                                borderColor="#C96048"
-                                glowColor="#d97a66"
                                 animated={true}
                                 className="rounded-lg"
                             >

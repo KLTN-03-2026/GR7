@@ -40,13 +40,27 @@ const getAllowedOrigins = () => {
 const corsOptions = {
     origin: (origin, callback) => {
         const allowed = getAllowedOrigins();
+        
         // cho phép request không có origin (server-to-server, Postman, curl)
-        if (!origin || allowed.includes(origin)) {
+        if (!origin) {
             callback(null, true);
-        } else {
-            console.warn('[CORS] Blocked origin:', origin);
-            callback(new Error('Not allowed by CORS'));
+            return;
         }
+        
+        // Kiểm tra nếu origin nằm trong danh sách allowed
+        if (allowed.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        
+        // Cho phép tất cả subdomain của Vercel (*.vercel.app)
+        if (origin.endsWith('.vercel.app')) {
+            callback(null, true);
+            return;
+        }
+        
+        console.warn('[CORS] Blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -56,7 +70,29 @@ const corsOptions = {
 // Socket.io
 const io = new Server(httpServer, {
     cors: {
-        origin: getAllowedOrigins(),
+        origin: (origin, callback) => {
+            const allowed = getAllowedOrigins();
+            
+            // cho phép request không có origin
+            if (!origin) {
+                callback(null, true);
+                return;
+            }
+            
+            // Kiểm tra nếu origin nằm trong danh sách allowed
+            if (allowed.includes(origin)) {
+                callback(null, true);
+                return;
+            }
+            
+            // Cho phép tất cả subdomain của Vercel (*.vercel.app)
+            if (origin.endsWith('.vercel.app')) {
+                callback(null, true);
+                return;
+            }
+            
+            callback(new Error('Not allowed by CORS'));
+        },
         methods: ['GET', 'POST'],
         credentials: true,
     },
