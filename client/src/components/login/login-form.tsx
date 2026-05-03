@@ -20,6 +20,9 @@ import { useGoogleLogin } from '@react-oauth/google';
 import FacebookLogin from '@greatsumini/react-facebook-login';
 import { FaGoogle } from 'react-icons/fa';
 import { getRoleHomePath } from '@/utils/routePermissions';
+import BorderGlow from '../animations/BorderGlow';
+import ShinyText from '../animations/ShinyText';
+import { useTheme } from 'next-themes';
 
 export function LoginForm({
     className,
@@ -32,6 +35,7 @@ export function LoginForm({
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const { theme } = useTheme();
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [facebookLoading, setFacebookLoading] = useState(false);
@@ -171,211 +175,223 @@ export function LoginForm({
             {...props}
             onSubmit={handleSubmit}
         >
-            <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl">Đăng Nhập Vào Tài Khoản</h1>
-                <p className="text-balance text-sm">
-                    Nhập email của bạn bên dưới để đăng nhập vào tài khoản
-                </p>
-            </div>
-            <div className="grid gap-6 font-bold">
+            {/* Form Fields */}
+            <div className="grid gap-5">
+                {/* Email Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-sm font-semibold">
+                        Email
+                    </Label>
                     <Input
                         id="email"
                         type="email"
                         name="email"
                         autoFocus
-                        placeholder="m@example.com"
+                        placeholder="your@email.com"
                         onChange={handleChange}
                         value={data.email}
-                        className="h-12 border-border border-2 focus-visible:ring-1 focus-visible:ring-primary shadow-sm rounded-lg bg-background/50 focus:bg-background transition-colors"
+                        className="h-12 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                     />
                 </div>
+
+                {/* Password Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Mật khẩu</Label>
+                    <Label htmlFor="password" className="text-sm font-semibold">
+                        Mật khẩu
+                    </Label>
                     <div className="relative">
                         <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             name="password"
-                            placeholder="Nhập mật khẩu"
+                            placeholder="Nhập mật khẩu của bạn"
                             onChange={handleChange}
                             value={data.password}
-                            className="h-12 pr-10 border-border border-2 focus-visible:ring-1 focus-visible:ring-primary shadow-sm rounded-lg bg-background/50 focus:bg-background transition-colors"
+                            className="h-12 pr-10 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                         />
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
+                            className="absolute right-0 top-0 h-full px-3 py-0 cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                         >
                             {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             )}
-                        </Button>
+                        </button>
                     </div>
                 </div>
-                <div className="flex items-center justify-between font-semibold text-highlight">
+
+                {/* Remember & Forgot Password */}
+                <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center space-x-2">
                         <input
                             type="checkbox"
                             id="remember"
-                            className="rounded border-gray-300 cursor-pointer"
+                            className="rounded border-gray-300 cursor-pointer w-4 h-4"
+                            style={{
+                                accentColor: '#C96048',
+                            }}
                         />
                         <Label
                             htmlFor="remember"
-                            className="text-sm cursor-pointer hover:opacity-80"
+                            className="cursor-pointer hover:opacity-80 transition-opacity text-muted-foreground font-medium"
                         >
                             Ghi nhớ đăng nhập
                         </Label>
                     </div>
                     <Link
                         to={'/forgot-password'}
-                        className="p-0 h-auto text-sm hover:opacity-80 cursor-pointer"
+                        className="p-0 h-auto hover:opacity-80 cursor-pointer transition-opacity font-semibold"
+                        style={{ color: '#C96048' }}
                     >
                         Quên mật khẩu?
                     </Link>
                 </div>
 
-                <GlareHover
-                    background="transparent"
-                    glareOpacity={0.3}
-                    glareAngle={-30}
-                    glareSize={300}
-                    transitionDuration={800}
-                    playOnce={false}
+                {/* Login Button with BorderGlow */}
+                <BorderGlow
+                    borderWidth={2}
+                    borderColor="#C96048"
+                    glowColor="#d97a66"
+                    animated={true}
+                    animationDuration={3}
+                    className="rounded-lg mt-2"
                 >
                     <Button
                         type="submit"
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 w-full h-12 font-bold shadow-md transition-all"
+                        disabled={loading}
+                        className="w-full h-12 md:h-14 font-bold shadow-lg transition-all hover:shadow-xl active:scale-[0.98] text-white text-base"
+                        style={{
+                            background:
+                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                        }}
                     >
                         {loading ? <Loading /> : 'Đăng nhập'}
                     </Button>
-                </GlareHover>
+                </BorderGlow>
 
-                <>
-                    <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-foreground">
-                        <span className="relative z-10 bg-background px-2 py-1 rounded-md text-foreground uppercase">
-                            Hoặc đăng nhập với
-                        </span>
-                    </div>
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 border-t border-gray-400"></div>
+                    <span className="text-orange-200 text-xs font-semibold whitespace-nowrap">
+                        HOẶC TIẾP TỤC VỚI
+                    </span>
+                    <div className="flex-1 border-t border-gray-400"></div>
+                </div>
 
-                    <div className="text-foreground grid grid-cols-2 gap-4">
-                        {/* Google — custom button */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full flex items-center justify-center gap-2 h-12 border-border border-2 rounded-lg shadow-sm cursor-pointer bg-background/50 hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => {
-                                setGoogleLoading(true);
-                                googleLogin();
-                            }}
-                            disabled={googleLoading}
-                        >
-                            {googleLoading ? (
-                                <Loading />
-                            ) : (
-                                <>
-                                    <FaGoogle className="text-red-500" />
-                                    Google
-                                </>
-                            )}
-                        </Button>
+                {/* Social Login Buttons */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Google Button */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full flex items-center justify-center gap-2 h-12 border-2 border-muted-foreground/30 rounded-lg cursor-pointer bg-background/50 hover:bg-muted/50 hover:border-[#C96048] transition-all active:scale-95 font-semibold"
+                        onClick={() => {
+                            setGoogleLoading(true);
+                            googleLogin();
+                        }}
+                        disabled={googleLoading}
+                    >
+                        {googleLoading ? (
+                            <Loading />
+                        ) : (
+                            <>
+                                <FaGoogle className="text-red-500 text-lg" />
+                                <span>Google</span>
+                            </>
+                        )}
+                    </Button>
 
-                        {/* Facebook — custom button */}
-                        <FacebookLogin
-                            appId={import.meta.env.VITE_FACEBOOK_APP_ID || ''}
-                            onSuccess={async (response) => {
-                                try {
-                                    setFacebookLoading(true);
-                                    const loginRes = await Axios({
-                                        ...SummaryApi.facebook_login,
-                                        data: {
-                                            accessToken: response.accessToken,
-                                        },
-                                    });
+                    {/* Facebook Button */}
+                    <FacebookLogin
+                        appId={import.meta.env.VITE_FACEBOOK_APP_ID || ''}
+                        onSuccess={async (response) => {
+                            try {
+                                setFacebookLoading(true);
+                                const loginRes = await Axios({
+                                    ...SummaryApi.facebook_login,
+                                    data: {
+                                        accessToken: response.accessToken,
+                                    },
+                                });
 
-                                    if (loginRes.data.error) {
-                                        toast.error(loginRes.data.message);
+                                if (loginRes.data.error) {
+                                    toast.error(loginRes.data.message);
+                                    return;
+                                }
+
+                                if (loginRes.data.success) {
+                                    toast.success(loginRes.data.message);
+                                    localStorage.setItem(
+                                        'accesstoken',
+                                        loginRes.data.data.accessToken
+                                    );
+                                    localStorage.setItem(
+                                        'refreshToken',
+                                        loginRes.data.data.refreshToken
+                                    );
+                                    const userDetails =
+                                        await fetchUserDetails();
+                                    dispatch(setUserDetails(userDetails.data));
+                                    navigate(
+                                        getRoleHomePath(userDetails.data?.role)
+                                    );
+                                }
+                            } catch (error) {
+                                AxiosToastError(error);
+                            } finally {
+                                setFacebookLoading(false);
+                            }
+                        }}
+                        onFail={(error) => {
+                            console.error('Facebook Login Error', error);
+                            toast.error('Đăng nhập Facebook thất bại.');
+                            setFacebookLoading(false);
+                        }}
+                        render={({ onClick }) => (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full flex items-center justify-center gap-2 h-12 border-2 border-muted-foreground/30 rounded-lg cursor-pointer bg-background/50 hover:bg-muted/50 hover:border-[#C96048] transition-all active:scale-95 font-semibold"
+                                onClick={() => {
+                                    if (!import.meta.env.VITE_FACEBOOK_APP_ID) {
+                                        toast.error(
+                                            'Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env'
+                                        );
                                         return;
                                     }
-
-                                    if (loginRes.data.success) {
-                                        toast.success(loginRes.data.message);
-                                        localStorage.setItem(
-                                            'accesstoken',
-                                            loginRes.data.data.accessToken
-                                        );
-                                        localStorage.setItem(
-                                            'refreshToken',
-                                            loginRes.data.data.refreshToken
-                                        );
-                                        const userDetails =
-                                            await fetchUserDetails();
-                                        dispatch(
-                                            setUserDetails(userDetails.data)
-                                        );
-                                        navigate(
-                                            getRoleHomePath(
-                                                userDetails.data?.role
-                                            )
-                                        );
-                                    }
-                                } catch (error) {
-                                    AxiosToastError(error);
-                                } finally {
-                                    setFacebookLoading(false);
-                                }
-                            }}
-                            onFail={(error) => {
-                                console.error('Facebook Login Error', error);
-                                toast.error('Đăng nhập Facebook thất bại.');
-                                setFacebookLoading(false);
-                            }}
-                            render={({ onClick }) => (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full flex items-center justify-center gap-2 h-12 border-border border-2 rounded-lg shadow-sm cursor-pointer bg-background/50 hover:bg-accent hover:text-accent-foreground transition-colors"
-                                    onClick={() => {
-                                        if (
-                                            !import.meta.env
-                                                .VITE_FACEBOOK_APP_ID
-                                        ) {
-                                            toast.error(
-                                                'Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env'
-                                            );
-                                            return;
-                                        }
-                                        setFacebookLoading(true);
-                                        onClick();
-                                    }}
-                                    disabled={facebookLoading}
-                                >
-                                    {facebookLoading ? (
-                                        <Loading />
-                                    ) : (
-                                        <>
-                                            <FaFacebookSquare className="text-blue-600 text-lg" />
-                                            Facebook
-                                        </>
-                                    )}
-                                </Button>
-                            )}
-                        />
-                    </div>
-                </>
+                                    setFacebookLoading(true);
+                                    onClick();
+                                }}
+                                disabled={facebookLoading}
+                            >
+                                {facebookLoading ? (
+                                    <Loading />
+                                ) : (
+                                    <>
+                                        <FaFacebookSquare className="text-blue-600 text-lg" />
+                                        <span>Facebook</span>
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                    />
+                </div>
             </div>
-            <div className="text-center text-sm">
-                Bạn chưa có tài khoản?{' '}
+
+            {/* Register Link */}
+            <div className="text-center text-sm mt-2">
+                <span className="text-muted-foreground">
+                    Chưa có tài khoản?{' '}
+                </span>
                 <Link
                     to={'/register'}
-                    className="p-0 h-auto text-sm hover:opacity-80 cursor-pointer text-highlight"
+                    className="hover:opacity-80 cursor-pointer transition-opacity font-semibold hover:underline"
+                    style={{ color: '#C96048' }}
                 >
-                    Đăng ký ngay.
+                    Đăng ký ngay
                 </Link>
             </div>
         </form>

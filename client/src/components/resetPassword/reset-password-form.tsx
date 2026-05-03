@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
-import GlareHover from '../GlareHover';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Axios from '@/utils/Axios';
 import SummaryApi from '@/common/SummaryApi';
@@ -12,7 +11,7 @@ import toast from 'react-hot-toast';
 import AxiosToastError from '@/utils/AxiosToastError';
 import Loading from '../Loading';
 import { Eye, EyeOff } from 'lucide-react';
-import { IoIosArrowRoundBack } from 'react-icons/io';
+import BorderGlow from '../animations/BorderGlow';
 
 export function ResetPasswordForm({
     className,
@@ -44,7 +43,7 @@ export function ResetPasswordForm({
         }
     }, [location, navigate]);
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
         setData((prev) => {
@@ -55,7 +54,7 @@ export function ResetPasswordForm({
         });
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!data.newPassword || !data.confirmNewPassword) {
@@ -140,44 +139,39 @@ export function ResetPasswordForm({
             {...props}
             onSubmit={handleSubmit}
         >
-            <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-semibold">Đổi mật khẩu</h1>
-                <p className="text-balance text-sm">
-                    Nhập mật khẩu mới của bạn và xác nhận để cập nhật mật khẩu
-                    tài khoản.
-                </p>
-            </div>
-            <div className="grid gap-6">
+            {/* Form Fields */}
+            <div className="grid gap-5">
+                {/* New Password Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                    <Label htmlFor="newPassword" className="text-sm font-semibold">Mật khẩu mới</Label>
                     <div className="relative">
                         <Input
                             id="newPassword"
                             type={showNewPassword ? 'text' : 'password'}
                             name="newPassword"
                             autoFocus
-                            placeholder="Nhập mật khẩu mới"
+                            placeholder="Nhập mật khẩu của bạn"
                             onChange={handleChange}
                             value={data.newPassword}
-                            className="h-12 pr-10 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                            className="h-12 pr-10 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                         />
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
+                            className="absolute right-0 top-0 h-full px-3 py-0 cursor-pointer"
                             onClick={() => setShowNewPassword(!showNewPassword)}
                         >
                             {showNewPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             )}
-                        </Button>
+                        </button>
                     </div>
                 </div>
+
+                {/* Confirm New Password Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="confirmNewPassword">
+                    <Label htmlFor="confirmNewPassword" className="text-sm font-semibold">
                         Xác nhận mật khẩu mới
                     </Label>
                     <div className="relative">
@@ -185,16 +179,14 @@ export function ResetPasswordForm({
                             id="confirmNewPassword"
                             type={showConfirmNewPassword ? 'text' : 'password'}
                             name="confirmNewPassword"
-                            placeholder="Nhập lại mật khẩu để xác nhận"
+                            placeholder="Xác nhận mật khẩu của bạn"
                             onChange={handleChange}
                             value={data.confirmNewPassword}
-                            className="h-12 pr-10 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                            className="h-12 pr-10 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                         />
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
+                            className="absolute right-0 top-0 h-full px-3 py-0 cursor-pointer"
                             onClick={() =>
                                 setShowConfirmNewPassword(
                                     !showConfirmNewPassword
@@ -202,38 +194,45 @@ export function ResetPasswordForm({
                             }
                         >
                             {showConfirmNewPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             )}
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
-                <GlareHover
-                    background="transparent"
-                    glareOpacity={0.3}
-                    glareAngle={-30}
-                    glareSize={300}
-                    transitionDuration={800}
-                    playOnce={false}
+                {/* Submit Button with BorderGlow */}
+                <BorderGlow
+                    borderColor="#C96048"
+                    glowColor="#d97a66"
+                    animated={true}
+                    className="rounded-lg mt-2"
                 >
                     <Button
                         type="submit"
-                        className="bg-foreground w-full h-12 font-bold"
+                        disabled={loading}
+                        className="w-full h-12 md:h-14 font-bold shadow-lg transition-all hover:shadow-xl active:scale-[0.98] text-white text-base"
+                        style={{
+                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                        }}
                     >
                         {loading ? <Loading /> : 'Xác nhận'}
                     </Button>
-                </GlareHover>
+                </BorderGlow>
             </div>
-            <Link
-                to={'/login'}
-                className="text-center text-sm flex justify-center items-center gap-2
-                hover:opacity-80 cursor-pointer text-highlight"
-            >
-                <IoIosArrowRoundBack size={28} className="mb-0.5" />
-                Quay lại.
-            </Link>
+
+            {/* Back to Login Link */}
+            <div className="text-center text-sm mt-2">
+                <span className="text-muted-foreground">Nhớ mật khẩu? </span>
+                <Link
+                    to={'/login'}
+                    className="hover:opacity-80 cursor-pointer transition-opacity font-semibold hover:underline"
+                    style={{ color: '#C96048' }}
+                >
+                    Quay lại đăng nhập
+                </Link>
+            </div>
         </form>
     );
 }

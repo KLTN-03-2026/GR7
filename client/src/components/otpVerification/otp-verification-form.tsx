@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useRef, useState } from 'react';
-import GlareHover from '../GlareHover';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Axios from '@/utils/Axios';
 import SummaryApi from '@/common/SummaryApi';
 import toast from 'react-hot-toast';
 import AxiosToastError from '@/utils/AxiosToastError';
 import Loading from '../Loading';
+import BorderGlow from '../animations/BorderGlow';
 
 export function OtpVerificationForm({
     className,
@@ -28,7 +28,7 @@ export function OtpVerificationForm({
         }
     }, []);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!data.join('')) {
@@ -72,22 +72,17 @@ export function OtpVerificationForm({
     return (
         <form
             className={cn(
-                'flex flex-col gap-6 font-bold text-foreground',
+                'flex flex-col gap-6 font-semibold text-foreground',
                 className
             )}
             {...props}
             onSubmit={handleSubmit}
         >
-            <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Xác nhận OTP</h1>
-                <p className="text-balance text-sm">
-                    Nhập mã OTP đã được gửi đến email của bạn để tiếp tục quy
-                    trình đặt lại mật khẩu.
-                </p>
-            </div>
-            <div className="grid gap-6">
+            {/* Form Fields */}
+            <div className="grid gap-5">
+                {/* OTP Input Fields */}
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Mã OTP</Label>
+                    <Label htmlFor="otp-0" className="text-sm font-semibold">Mã OTP</Label>
                     <div className="flex items-center justify-between gap-2">
                         {data.map((element, index) => {
                             return (
@@ -109,41 +104,49 @@ export function OtpVerificationForm({
                                         setData(newData);
 
                                         if (value && index < 5) {
-                                            inputRef.current[index + 1].focus();
+                                            inputRef.current[index + 1]?.focus();
                                         }
                                     }}
                                     maxLength={1}
-                                    className="h-12 text-highlight border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg
-                                    bg-background focus:border-[#3F3FF3] no-spinner text-center"
+                                    className="h-14 w-14 text-center text-xl font-bold border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors no-spinner"
+                                    style={{
+                                        color: '#C96048'
+                                    }}
                                 />
                             );
                         })}
                     </div>
                 </div>
 
-                <GlareHover
-                    background="transparent"
-                    glareOpacity={0.3}
-                    glareAngle={-30}
-                    glareSize={300}
-                    transitionDuration={800}
-                    playOnce={false}
+                {/* Submit Button with BorderGlow */}
+                <BorderGlow
+                    borderColor="#C96048"
+                    glowColor="#d97a66"
+                    animated={true}
+                    className="rounded-lg mt-2"
                 >
                     <Button
                         type="submit"
-                        className="bg-foreground w-full h-12 font-bold"
+                        disabled={loading}
+                        className="w-full h-12 md:h-14 font-bold shadow-lg transition-all hover:shadow-xl active:scale-[0.98] text-white text-base"
+                        style={{
+                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                        }}
                     >
                         {loading ? <Loading /> : 'Xác nhận OTP'}
                     </Button>
-                </GlareHover>
+                </BorderGlow>
             </div>
-            <div className="text-center text-sm">
-                Nhớ mật khẩu?{' '}
+
+            {/* Back to Login Link */}
+            <div className="text-center text-sm mt-2">
+                <span className="text-muted-foreground">Nhớ mật khẩu? </span>
                 <Link
                     to={'/login'}
-                    className="p-0 h-auto text-sm hover:text-opacity-80 font-medium cursor-pointer text-highlight"
+                    className="hover:opacity-80 cursor-pointer transition-opacity font-semibold hover:underline"
+                    style={{ color: '#C96048' }}
                 >
-                    Quay lại đăng nhập.
+                    Quay lại đăng nhập
                 </Link>
             </div>
         </form>

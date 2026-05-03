@@ -1,19 +1,14 @@
 import { useEffect, useState, FC } from 'react';
 import {
-    Link,
-    useLocation,
     useNavigate,
     useSearchParams,
 } from 'react-router-dom';
-import GlareHover from '../GlareHover';
 import { FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
 import Axios from '@/utils/Axios';
 import SummaryApi from '@/common/SummaryApi';
 import AxiosToastError from '@/utils/AxiosToastError';
-
-interface LocationState {
-    email?: string;
-}
+import BorderGlow from '../animations/BorderGlow';
+import { Button } from '../ui/button';
 
 const VerifyEmailForm: FC = () => {
     const [searchParams] = useSearchParams();
@@ -72,54 +67,73 @@ const VerifyEmailForm: FC = () => {
     }, [searchParams, navigate]);
 
     return (
-        <div className="flex items-center justify-center text-sm text-foreground font-bold">
-            <div className="liquid-glass rounded-lg max-w-xl w-full space-y-8 sm:p-8 py-8 px-6 text-center">
+        <div className="flex items-center justify-center text-foreground font-semibold">
+            <div className="max-w-xl w-full space-y-8 p-8 bg-card/50 backdrop-blur-sm rounded-2xl border border-border shadow-xl">
                 {isLoading ? (
-                    <>
+                    <div className="text-center space-y-6">
                         <div className="flex justify-center">
-                            <FaSpinner className="h-16 w-16 text-blue-500 animate-spin" />
+                            <FaSpinner className="h-16 w-16 animate-spin" style={{ color: '#C96048' }} />
                         </div>
-                        <p className="mt-4 text-lg text-gray-700">{message}</p>
-                    </>
+                        <p className="text-lg text-muted-foreground">{message}</p>
+                    </div>
                 ) : isSuccess ? (
-                    <>
+                    <div className="text-center space-y-6">
+                        {/* Success Icon */}
                         <div className="flex justify-center">
-                            <div className="bg-orange-50 rounded-full p-3">
-                                <FaCheckCircle className="h-12 w-12 text-orange-700" />
+                            <div className="rounded-full p-4" style={{ backgroundColor: 'rgba(201, 96, 72, 0.1)' }}>
+                                <FaCheckCircle className="h-16 w-16" style={{ color: '#C96048' }} />
                             </div>
                         </div>
-                        <h2 className="mt-6 pb-2 text-xl uppercase font-extrabold text-orange-700">
+
+                        {/* Title */}
+                        <h2 className="text-3xl font-bold" style={{ color: '#C96048' }}>
                             Xác nhận thành công!
                         </h2>
-                        <p className="mt-4 font-bold text-orange-700 sm:text-base text-sm">
+
+                        {/* Message */}
+                        <p className="text-base text-foreground">
                             {message}
                         </p>
-                    </>
+                    </div>
                 ) : (
-                    <>
+                    <div className="text-center space-y-6">
+                        {/* Error Icon */}
                         <div className="flex justify-center">
-                            <div className="bg-red-100 rounded-full p-3">
-                                <FaTimesCircle className="h-12 w-12 text-red-600" />
+                            <div className="rounded-full p-4 bg-red-100">
+                                <FaTimesCircle className="h-16 w-16 text-red-600" />
                             </div>
                         </div>
-                        <h2 className="mt-6 sm:text-2xl text-lg font-extrabold text-red-700">
+
+                        {/* Title */}
+                        <h2 className="text-3xl font-bold text-red-600">
                             Xác nhận không thành công
                         </h2>
-                        <p className="mt-4 font-bold text-rose-500 sm:text-base text-sm">
-                            Có sự cố xảy ra khi xác nhận email của bạn. Vui lòng
-                            thử lại sau.
+
+                        {/* Message */}
+                        <p className="text-base text-muted-foreground">
+                            {message}
                         </p>
-                        <div className="mt-6">
-                            <button
-                                onClick={() => navigate('/register')}
-                                className="w-full flex justify-center py-2 px-4 border-2 border-secondary-200 rounded-md shadow-sm sm:text-sm text-xs
-                                    font-medium text-secondary-200 bg-white hover:bg-secondary-200 focus:outline-none focus:ring-2 focus:ring-offset-2
-                                    focus:ring-indigo-500"
+
+                        {/* Back Button */}
+                        <div className="pt-4">
+                            <BorderGlow
+                                borderColor="#C96048"
+                                glowColor="#d97a66"
+                                animated={true}
+                                className="rounded-lg"
                             >
-                                Quay lại trang đăng ký
-                            </button>
+                                <Button
+                                    onClick={() => navigate('/register')}
+                                    className="w-full h-12 font-bold text-white text-base"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                    }}
+                                >
+                                    Quay lại trang đăng ký
+                                </Button>
+                            </BorderGlow>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
         </div>

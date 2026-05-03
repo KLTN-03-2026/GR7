@@ -8,7 +8,6 @@ import { useDispatch } from 'react-redux';
 import { setUserDetails } from '@/store/userSlice';
 import fetchUserDetails from '@/utils/fetchUserDetails';
 import { Eye, EyeOff } from 'lucide-react';
-import GlareHover from '../GlareHover';
 import { FaFacebookSquare } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import Axios from '@/utils/Axios';
@@ -19,6 +18,7 @@ import Loading from '../Loading';
 import { useGoogleLogin } from '@react-oauth/google';
 import FacebookLogin from '@greatsumini/react-facebook-login';
 import { FaGoogle } from 'react-icons/fa';
+import BorderGlow from '../animations/BorderGlow';
 
 export function RegisterForm({
     className,
@@ -40,12 +40,12 @@ export function RegisterForm({
     const [googleLoading, setGoogleLoading] = useState(false);
     const [facebookLoading, setFacebookLoading] = useState(false);
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const validateEmail = (email) => {
+    const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
         const validTLDs = [
             'com',
@@ -73,13 +73,13 @@ export function RegisterForm({
         return true;
     };
 
-    const validateMobile = (mobile) => {
+    const validateMobile = (mobile: string) => {
         // Vietnamese phone number: 10 digits, starts with 0
         const mobileRegex = /^0[1-9][0-9]{8}$/;
         return mobile && mobileRegex.test(mobile);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!data.name && !data.email && !data.mobile && !data.password) {
@@ -181,21 +181,19 @@ export function RegisterForm({
     return (
         <form
             className={cn(
-                'flex flex-col gap-6 font-bold text-foreground',
+                'flex flex-col gap-5 font-semibold text-foreground',
                 className
             )}
             {...props}
             onSubmit={handleSubmit}
         >
-            <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Tạo Tài Khoản</h1>
-                <p className="text-balance text-sm text-muted-foreground">
-                    Tạo một tài khoản mới để bắt đầu sử dụng EatEase.
-                </p>
-            </div>
-            <div className="grid gap-6">
+            {/* Form Fields */}
+            <div className="grid gap-4">
+                {/* Name Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="name">Tên người dùng</Label>
+                    <Label htmlFor="name" className="text-sm font-semibold">
+                        Tên người dùng
+                    </Label>
                     <Input
                         id="name"
                         type="text"
@@ -204,23 +202,31 @@ export function RegisterForm({
                         placeholder="Nhập tên của bạn"
                         onChange={handleChange}
                         value={data.name}
-                        className="h-12 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                        className="h-12 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                     />
                 </div>
+
+                {/* Email Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-sm font-semibold">
+                        Email
+                    </Label>
                     <Input
                         id="email"
                         type="email"
                         name="email"
-                        placeholder="m@example.com"
+                        placeholder="your@email.com"
                         onChange={handleChange}
                         value={data.email}
-                        className="h-12 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                        className="h-12 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                     />
                 </div>
+
+                {/* Mobile Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="mobile">Số điện thoại</Label>
+                    <Label htmlFor="mobile" className="text-sm font-semibold">
+                        Số điện thoại
+                    </Label>
                     <Input
                         id="mobile"
                         type="tel"
@@ -228,188 +234,211 @@ export function RegisterForm({
                         placeholder="Nhập số điện thoại của bạn"
                         onChange={handleChange}
                         value={data.mobile}
-                        className="h-12 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                        className="h-12 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                     />
                 </div>
+
+                {/* Password Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Mật khẩu</Label>
+                    <Label htmlFor="password" className="text-sm font-semibold">
+                        Mật khẩu
+                    </Label>
                     <div className="relative">
                         <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             name="password"
-                            placeholder="Nhập mật khẩu"
+                            placeholder="Nhập mật khẩu của bạn"
                             onChange={handleChange}
                             value={data.password}
-                            className="h-12 pr-10 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                            className="h-12 pr-10 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                         />
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
+                            className="absolute right-0 top-0 h-full px-3 py-0 cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                         >
                             {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             )}
-                        </Button>
+                        </button>
                     </div>
                 </div>
+
+                {/* Confirm Password Field */}
                 <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                    <Label
+                        htmlFor="confirmPassword"
+                        className="text-sm font-semibold"
+                    >
+                        Xác nhận mật khẩu
+                    </Label>
                     <div className="relative">
                         <Input
                             id="confirmPassword"
                             type={showConfirmPassword ? 'text' : 'password'}
                             name="confirmPassword"
-                            placeholder="Nhập lại mật khẩu để xác nhận"
+                            placeholder="Xác nhận mật khẩu của bạn"
                             onChange={handleChange}
                             value={data.confirmPassword}
-                            className="h-12 pr-10 border-muted-foreground border-2 focus:ring-0 shadow-none rounded-lg bg-white/20 focus:border-[#3F3FF3]"
+                            className="h-12 pr-10 border-muted-foreground border-2 focus-visible:ring-0 shadow-none rounded-lg bg-background/50 focus-visible:border-[#C96048] transition-colors"
                         />
-                        <Button
+                        <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
+                            className="absolute right-0 top-0 h-full px-3 py-0 cursor-pointer"
                             onClick={() =>
                                 setShowConfirmPassword(!showConfirmPassword)
                             }
                         >
                             {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-5 w-5 text-muted-foreground hover:text-orange-500" />
                             )}
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
-                <GlareHover
-                    background="transparent"
-                    glareOpacity={0.3}
-                    glareAngle={-30}
-                    glareSize={300}
-                    transitionDuration={800}
-                    playOnce={false}
+                {/* Register Button with BorderGlow */}
+                <BorderGlow
+                    borderColor="#C96048"
+                    glowColor="#d97a66"
+                    animated={true}
+                    className="rounded-lg mt-2"
                 >
                     <Button
                         type="submit"
-                        className="bg-foreground w-full h-12 font-bold"
+                        disabled={loading}
+                        className="w-full h-12 md:h-14 font-bold shadow-lg transition-all hover:shadow-xl active:scale-[0.98] text-white text-base"
+                        style={{
+                            background:
+                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                        }}
                     >
                         {loading ? <Loading /> : 'Đăng ký'}
                     </Button>
-                </GlareHover>
+                </BorderGlow>
 
-                <>
-                    <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-foreground">
-                        <span className="relative z-10 bg-background px-2 py-1 rounded-md text-foreground uppercase">
-                            Hoặc đăng ký với
-                        </span>
-                    </div>
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-2">
+                    <div className="flex-1 border-t border-gray-400"></div>
+                    <span className="text-orange-200 text-xs font-semibold whitespace-nowrap">
+                        HOẶC TIẾP TỤC VỚI
+                    </span>
+                    <div className="flex-1 border-t border-gray-400"></div>
+                </div>
 
-                    <div className="text-foreground grid grid-cols-2 gap-4">
-                        {/* Google — custom button */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full flex items-center justify-center gap-2 h-12 border-muted-foreground border-2 rounded-lg shadow-none cursor-pointer"
-                            onClick={() => {
-                                setGoogleLoading(true);
-                                googleLogin();
-                            }}
-                            disabled={googleLoading}
-                        >
-                            {googleLoading ? (
-                                <Loading />
-                            ) : (
-                                <>
-                                    <FaGoogle className="text-red-500" />
-                                    Google
-                                </>
-                            )}
-                        </Button>
+                {/* Social Login Buttons */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Google Button */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full flex items-center justify-center gap-2 h-12 border-2 border-muted-foreground/30 rounded-lg cursor-pointer bg-background/50 hover:bg-muted/50 hover:border-[#C96048] transition-all active:scale-95 font-semibold"
+                        onClick={() => {
+                            setGoogleLoading(true);
+                            googleLogin();
+                        }}
+                        disabled={googleLoading}
+                    >
+                        {googleLoading ? (
+                            <Loading />
+                        ) : (
+                            <>
+                                <FaGoogle className="text-red-500 text-lg" />
+                                <span>Google</span>
+                            </>
+                        )}
+                    </Button>
 
-                        {/* Facebook — custom button */}
-                        <FacebookLogin
-                            appId={import.meta.env.VITE_FACEBOOK_APP_ID || ''}
-                            onSuccess={async (response) => {
-                                try {
-                                    setFacebookLoading(true);
-                                    const loginRes = await Axios({
-                                        ...SummaryApi.facebook_login,
-                                        data: { accessToken: response.accessToken },
-                                    });
+                    {/* Facebook Button */}
+                    <FacebookLogin
+                        appId={import.meta.env.VITE_FACEBOOK_APP_ID || ''}
+                        onSuccess={async (response) => {
+                            try {
+                                setFacebookLoading(true);
+                                const loginRes = await Axios({
+                                    ...SummaryApi.facebook_login,
+                                    data: { accessToken: response.accessToken },
+                                });
 
-                                    if (loginRes.data.error) {
-                                        toast.error(loginRes.data.message);
+                                if (loginRes.data.error) {
+                                    toast.error(loginRes.data.message);
+                                    return;
+                                }
+
+                                if (loginRes.data.success) {
+                                    toast.success(
+                                        'Đăng ký và đăng nhập Facebook thành công!'
+                                    );
+                                    localStorage.setItem(
+                                        'accesstoken',
+                                        loginRes.data.data.accessToken
+                                    );
+                                    localStorage.setItem(
+                                        'refreshToken',
+                                        loginRes.data.data.refreshToken
+                                    );
+                                    const userDetails =
+                                        await fetchUserDetails();
+                                    dispatch(setUserDetails(userDetails.data));
+                                    navigate('/');
+                                }
+                            } catch (error) {
+                                AxiosToastError(error);
+                            } finally {
+                                setFacebookLoading(false);
+                            }
+                        }}
+                        onFail={(error) => {
+                            console.error('Facebook Register Error', error);
+                            toast.error('Đăng ký Facebook thất bại.');
+                            setFacebookLoading(false);
+                        }}
+                        render={({ onClick }) => (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full flex items-center justify-center gap-2 h-12 border-2 border-muted-foreground/30 rounded-lg cursor-pointer bg-background/50 hover:bg-muted/50 hover:border-[#C96048] transition-all active:scale-95 font-semibold"
+                                onClick={() => {
+                                    if (!import.meta.env.VITE_FACEBOOK_APP_ID) {
+                                        toast.error(
+                                            'Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env'
+                                        );
                                         return;
                                     }
-
-                                    if (loginRes.data.success) {
-                                        toast.success('Đăng ký và đăng nhập Facebook thành công!');
-                                        localStorage.setItem(
-                                            'accesstoken',
-                                            loginRes.data.data.accessToken
-                                        );
-                                        localStorage.setItem(
-                                            'refreshToken',
-                                            loginRes.data.data.refreshToken
-                                        );
-                                        const userDetails = await fetchUserDetails();
-                                        dispatch(setUserDetails(userDetails.data));
-                                        navigate('/');
-                                    }
-                                } catch (error) {
-                                    AxiosToastError(error);
-                                } finally {
-                                    setFacebookLoading(false);
-                                }
-                            }}
-                            onFail={(error) => {
-                                console.error('Facebook Register Error', error);
-                                toast.error('Đăng ký Facebook thất bại.');
-                                setFacebookLoading(false);
-                            }}
-                            render={({ onClick }) => (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full flex items-center justify-center gap-2 h-12 border-muted-foreground border-2 rounded-lg shadow-none cursor-pointer"
-                                    onClick={() => {
-                                        if(!import.meta.env.VITE_FACEBOOK_APP_ID) {
-                                            toast.error("Vui lòng cấu hình VITE_FACEBOOK_APP_ID trong .env");
-                                            return;
-                                        }
-                                        setFacebookLoading(true);
-                                        onClick();
-                                    }}
-                                    disabled={facebookLoading}
-                                >
-                                    {facebookLoading ? (
-                                        <Loading />
-                                    ) : (
-                                        <>
-                                            <FaFacebookSquare className="text-blue-600 text-lg" />
-                                            Facebook
-                                        </>
-                                    )}
-                                </Button>
-                            )}
-                        />
-                    </div>
-                </>
+                                    setFacebookLoading(true);
+                                    onClick();
+                                }}
+                                disabled={facebookLoading}
+                            >
+                                {facebookLoading ? (
+                                    <Loading />
+                                ) : (
+                                    <>
+                                        <FaFacebookSquare className="text-blue-600 text-lg" />
+                                        <span>Facebook</span>
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                    />
+                </div>
             </div>
-            <div className="text-center text-sm">
-                Bạn đã có tài khoản?{' '}
+
+            {/* Login Link */}
+            <div className="text-center text-sm mt-2">
+                <span className="text-muted-foreground">
+                    Bạn đã có tài khoản?{' '}
+                </span>
                 <Link
                     to={'/login'}
-                    className="p-0 h-auto text-sm hover:text-opacity-80 font-medium cursor-pointer text-highlight"
+                    className="hover:opacity-80 cursor-pointer transition-opacity font-semibold hover:underline"
+                    style={{ color: '#C96048' }}
                 >
-                    Đăng nhập.
+                    Đăng nhập
                 </Link>
             </div>
         </form>
