@@ -75,6 +75,15 @@ const productSchema = new mongoose.Schema({
             ]
         }
     ],
+    // Soft Delete (PB08, PB09)
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {
+        type: Date,
+        default: null
+    }
 }, {
     timestamps: true
 })
@@ -99,6 +108,10 @@ productSchema.index(
     { name: "text", description: "text" },
     { weights: { name: 10, description: 5 } } // name ưu tiên cao hơn
 );
+
+// Index cho soft delete
+productSchema.index({ isDeleted: 1 });
+productSchema.index({ deletedAt: 1 });
 
 const ProductModel = mongoose.model("product", productSchema)
 
