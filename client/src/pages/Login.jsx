@@ -74,7 +74,6 @@ export default function LoginPage() {
                             </span>
                         </Link>
                     </div>
-
                     {/* Form Container - Centered */}
                     <div className="flex-1 flex items-center justify-center py-8">
                         <div className="w-full max-w-md">

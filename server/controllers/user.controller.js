@@ -1048,3 +1048,260 @@ export async function getCustomerAnalytics(req, res) {
         });
     }
 }
+
+// ---------------- Admin User Management ----------------
+
+export async function getAdminUsers(req, res) {
+    try {
+        const users = await UserModel.find({ isDeleted: { $ne: true } }).select("-password -forgot_password_otp -forgot_password_expiry").sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            message: "Lấy danh sách người dùng thành công",
+            data: users,
+            error: false,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+export async function createAdminUser(req, res) {
+    try {
+        const { name, email, password, role } = req.body;
+
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({
+                message: "Vui lòng nhập đầy đủ thông tin",
+                error: true,
+                success: false
+            });
+        }
+
+        const userExists = await UserModel.findOne({ email });
+
+        if (userExists) {
+            return res.status(400).json({
+                message: "Email này đã được sử dụng",
+                error: true,
+                success: false
+            });
+        }
+
+        const salt = await bcryptjs.genSalt(10);
+        const hashPassword = await bcryptjs.hash(password, salt);
+
+        const payload = {
+            name,
+            email,
+            password: hashPassword,
+            role,
+            status: "Active",
+            verify_email: true
+        };
+
+        const newUser = new UserModel(payload);
+        const saveUser = await newUser.save();
+
+        return res.status(200).json({
+            message: "Tạo tài khoản thành công",
+            error: false,
+            success: true,
+            data: saveUser
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+export async function updateAdminUser(req, res) {
+    try {
+        const { id } = req.params;
+        const { name, role, status } = req.body;
+
+        const userToUpdate = await UserModel.findById(id);
+
+        if (!userToUpdate) {
+            return res.status(404).json({
+                message: "Tài khoản không tồn tại",
+                error: true,
+                success: false
+            });
+        }
+
+        if (req.userId === id && role && role !== "ADMIN") {
+            return res.status(400).json({
+                message: "Bạn không thể tự hạ cấp quyền quản trị của chính mình",
+                error: true,
+                success: false
+            });
+        }
+
+        if (req.userId === id && status === "Inactive") {
+            return res.status(400).json({
+                message: "Bạn không thể tự khóa tài khoản của chính mình",
+                error: true,
+                success: false
+            });
+        }
+
+        const payload = {};
+        if (name) payload.name = name;
+        if (role) payload.role = role;
+        if (status) payload.status = status;
+
+        const updatedUser = await UserModel.findByIdAndUpdate(id, payload, { new: true }).select("-password");
+
+        return res.status(200).json({
+            message: "Cập nhật tài khoản thành công",
+            error: false,
+            success: true,
+            data: updatedUser
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+export async function getDeletedAdminUsers(req, res) {
+    try {
+        const users = await UserModel.find({ isDeleted: true }).select("-password -forgot_password_otp -forgot_password_expiry").sort({ deletedAt: -1 });
+
+        return res.status(200).json({
+            message: "Lấy danh sách người dùng đã xóa thành công",
+            data: users,
+            error: false,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+export async function softDeleteAdminUser(req, res) {
+    try {
+        const { id } = req.params;
+
+        if (req.userId === id) {
+            return res.status(400).json({
+                message: "Bạn không thể tự xóa tài khoản của chính mình",
+                error: true,
+                success: false
+            });
+        }
+
+        const userToUpdate = await UserModel.findById(id);
+        if (!userToUpdate) {
+            return res.status(404).json({
+                message: "Tài khoản không tồn tại",
+                error: true,
+                success: false
+            });
+        }
+
+        userToUpdate.isDeleted = true;
+        userToUpdate.deletedAt = new Date();
+        userToUpdate.status = "Inactive"; // Block them as well
+        await userToUpdate.save();
+
+        return res.status(200).json({
+            message: "Đã đưa tài khoản vào thùng rác",
+            error: false,
+            success: true
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+export async function restoreAdminUser(req, res) {
+    try {
+        const { id } = req.params;
+
+        const userToUpdate = await UserModel.findById(id);
+        if (!userToUpdate) {
+            return res.status(404).json({
+                message: "Tài khoản không tồn tại",
+                error: true,
+                success: false
+            });
+        }
+
+        userToUpdate.isDeleted = false;
+        userToUpdate.deletedAt = null;
+        userToUpdate.status = "Active"; // Restore back to active
+        await userToUpdate.save();
+
+        return res.status(200).json({
+            message: "Khôi phục tài khoản thành công",
+            error: false,
+            success: true
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+export async function hardDeleteAdminUser(req, res) {
+    try {
+        const { id } = req.params;
+
+        if (req.userId === id) {
+            return res.status(400).json({
+                message: "Bạn không thể tự xóa vĩnh viễn tài khoản của chính mình",
+                error: true,
+                success: false
+            });
+        }
+
+        const deletedUser = await UserModel.findByIdAndDelete(id);
+        if (!deletedUser) {
+            return res.status(404).json({
+                message: "Tài khoản không tồn tại",
+                error: true,
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "Đã xóa vĩnh viễn tài khoản",
+            error: false,
+            success: true
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}

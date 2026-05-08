@@ -45,6 +45,7 @@ import CashierDashboard from '@/pages/CashierDashboard';
 import UnifiedChatPage from '@/pages/UnifiedChatPage';
 import MyOrdersPage from '../pages/MyOrdersPage';
 import AddressPage from '../pages/AddressPage';
+import EmployeeManagementPage from '@/pages/EmployeeManagementPage';
 
 const router = createBrowserRouter([
     {
@@ -163,6 +164,9 @@ const router = createBrowserRouter([
                     // === USER PAGES ===
                     { path: 'my-orders', element: <MyOrdersPage /> },
                     { path: 'address', element: <AddressPage /> },
+
+                    // === HR PAGES ===
+                    { path: 'employee-management', element: <EmployeeManagementPage /> },
 
                     // === STAFF BOARDS ===
                     {

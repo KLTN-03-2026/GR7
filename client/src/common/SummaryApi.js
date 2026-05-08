@@ -481,6 +481,36 @@ const SummaryApi = {
     delete_address: {
         url: '/api/address/delete/:id',
         method: 'delete'
+    },
+
+    // Admin Manage Users
+    get_admin_users: {
+        url: '/api/user/admin-list',
+        method: 'get'
+    },
+    create_admin_user: {
+        url: '/api/user/admin-create',
+        method: 'post'
+    },
+    update_admin_user: {
+        url: '/api/user/admin-update',
+        method: 'put'
+    },
+    get_deleted_admin_users: {
+        url: '/api/user/admin-deleted-list',
+        method: 'get'
+    },
+    soft_delete_admin_user: {
+        url: '/api/user/admin-soft-delete',
+        method: 'delete'
+    },
+    restore_admin_user: {
+        url: '/api/user/admin-restore',
+        method: 'put'
+    },
+    hard_delete_admin_user: {
+        url: '/api/user/admin-hard-delete',
+        method: 'delete'
     }
 }
 
