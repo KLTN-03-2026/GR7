@@ -55,13 +55,21 @@ const tableOrderSchema = new mongoose.Schema({
     tableId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'table',
-        required: true
+        required: false,
+        default: null
     },
     tableNumber: {
         type: String,
-        required: true
+        required: false,
+        default: null
     },
-    // Khách hàng (tùy chọn – guest hoặc Customer profile)
+    // Khách hàng đăng ký (User với role CUSTOMER)
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        default: null
+    },
+    // Khách hàng vãng lai (guest hoặc Customer profile)
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
@@ -111,12 +119,21 @@ const tableOrderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['cash', 'online', null],
+        enum: ['cash', 'stripe', null],
         default: null
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'refunded'],
+        enum: [
+            'pending',          // default – chưa có hành động
+            'paid',             // đã thanh toán
+            'refunded',         // hoàn tiền
+            'Chờ thanh toán',   // khách nhấn checkout
+            'Chờ xử lý',        // order active, chưa gửi bếp
+            'Đang chuẩn bị',    // kitchen đang nấu
+            'Đã phục vụ',       // tất cả món đã served
+            'Đã hủy'            // đơn bị hủy
+        ],
         default: 'pending'
     },
     paymentId: {
@@ -144,6 +161,7 @@ const tableOrderSchema = new mongoose.Schema({
 // Indexes
 tableOrderSchema.index({ tableId: 1, status: 1 });
 tableOrderSchema.index({ tableNumber: 1, status: 1 });
+tableOrderSchema.index({ userId: 1 });
 tableOrderSchema.index({ customerId: 1 });
 tableOrderSchema.index({ paymentStatus: 1 });
 tableOrderSchema.index({ createdAt: -1 });

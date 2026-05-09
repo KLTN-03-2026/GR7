@@ -10,8 +10,11 @@ import {
     confirmCashierPayment,
     cancelTableOrderItem,
     handleStripeWebhook,
-    verifyStripeSession
+    verifyStripeSession,
+    applyVoucherToTableOrder,
+    removeVoucherFromTableOrder
 } from '../controllers/tableOrder.controller.js';
+
 
 const tableOrderRouter = Router();
 
@@ -33,5 +36,9 @@ tableOrderRouter.post('/stripe-webhook', handleStripeWebhook);
 
 // US26 – Verify stripe session (for success page)
 tableOrderRouter.get('/verify-stripe-session', auth, verifyStripeSession);
+
+// PB29 – Cashier apply / remove voucher discount
+tableOrderRouter.patch('/:id/apply-voucher', auth, applyVoucherToTableOrder);
+tableOrderRouter.patch('/:id/remove-voucher', auth, removeVoucherFromTableOrder);
 
 export default tableOrderRouter;

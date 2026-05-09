@@ -6,7 +6,7 @@ import SummaryApi from '../common/SummaryApi';
 import toast from 'react-hot-toast';
 import {
     FiRefreshCw, FiWifi, FiWifiOff, FiMaximize, FiMinimize,
-    FiPrinter, FiCheckCircle, FiClock, FiDollarSign
+    FiPrinter, FiCheckCircle, FiClock, FiDollarSign, FiTag, FiX
 } from 'react-icons/fi';
 import { MdOutlinePayment, MdTableRestaurant } from 'react-icons/md';
 import { BsBellFill } from 'react-icons/bs';
@@ -34,6 +34,8 @@ function buildVietQRUrl(amount, description) {
 // ──────────────────────────────────────────────────────
 function printBill(order) {
     const items = order.items || [];
+    const subTotal = order.subTotal || order.total || 0;
+    const discount = order.discount || 0;
     const total = order.total || 0;
     const now = format(new Date(), 'HH:mm dd/MM/yyyy', { locale: vi });
     const desc = `Thanh toan ban ${order.tableNumber} EatEase`;
@@ -45,6 +47,10 @@ function printBill(order) {
             <td style="padding:4px 8px;text-align:center">x${item.quantity}</td>
             <td style="padding:4px 8px;text-align:right">${(item.price * item.quantity).toLocaleString('vi-VN')}đ</td>
         </tr>`).join('');
+
+    const discountRow = discount > 0
+        ? `<tr><td colspan="2" style="padding:4px 8px;color:#16a34a">Giảm giá:</td><td style="padding:4px 8px;text-align:right;color:#16a34a">-${discount.toLocaleString('vi-VN')}đ</td></tr>`
+        : '';
 
     const html = `<!DOCTYPE html><html><head>
         <meta charset="utf-8"/>
@@ -71,10 +77,14 @@ function printBill(order) {
                 <th style="text-align:right">Tiền</th>
             </tr></thead>
             <tbody>${rows}</tbody>
-            <tfoot><tr>
-                <td colspan="2" class="total" style="padding:8px 8px 4px">Tổng cộng:</td>
-                <td class="total" style="text-align:right;padding:8px 8px 4px">${total.toLocaleString('vi-VN')}đ</td>
-            </tr></tfoot>
+            <tfoot>
+                ${discount > 0 ? `<tr><td colspan="2" style="padding:4px 8px">Tạm tính:</td><td style="text-align:right;padding:4px 8px">${subTotal.toLocaleString('vi-VN')}đ</td></tr>` : ''}
+                ${discountRow}
+                <tr>
+                    <td colspan="2" class="total" style="padding:8px 8px 4px">Tổng cộng:</td>
+                    <td class="total" style="text-align:right;padding:8px 8px 4px">${total.toLocaleString('vi-VN')}đ</td>
+                </tr>
+            </tfoot>
         </table>
 
         <!-- VietQR Payment -->
@@ -112,6 +122,10 @@ const CashierDashboard = () => {
     // Payment calculator states
     const [voucherCode, setVoucherCode] = useState('');
     const [customerPaid, setCustomerPaid] = useState('');
+    // PB29 – Voucher state
+    const [appliedVoucher, setAppliedVoucher] = useState(null); // { code, name, discountAmount, newTotal }
+    const [voucherLoading, setVoucherLoading] = useState(false);
+    const [voucherError, setVoucherError] = useState('');
     
     const socketRef = useRef(null);
 
@@ -160,6 +174,54 @@ const CashierDashboard = () => {
         return () => s.disconnect();
     }, [fetchOrders]);
 
+    // PB29 – Apply voucher
+    const handleApplyVoucher = async () => {
+        if (!selectedOrder || !voucherCode.trim()) return;
+        setVoucherLoading(true);
+        setVoucherError('');
+        try {
+            const url = SummaryApi.apply_voucher_to_table_order.url.replace(':id', selectedOrder._id);
+            const res = await Axios({
+                url,
+                method: SummaryApi.apply_voucher_to_table_order.method,
+                data: { voucherCode: voucherCode.trim() },
+            });
+            if (res.data?.success) {
+                const d = res.data.data;
+                setAppliedVoucher(d);
+                // Cập nhật local state order để UI tính tiền thừa đúng
+                setSelectedOrder(prev => ({ ...prev, total: d.newTotal, discount: d.discountAmount }));
+                toast.success(`Áp dụng "${d.voucherCode}" thành công! Giảm ${d.discountAmount.toLocaleString('vi-VN')}đ`);
+            } else {
+                setVoucherError(res.data?.message || 'Không áp dụng được.');
+            }
+        } catch (err) {
+            const msg = err?.response?.data?.message || 'Lỗi khi áp dụng mã giảm giá.';
+            setVoucherError(msg);
+        } finally {
+            setVoucherLoading(false);
+        }
+    };
+
+    // PB29 – Remove voucher
+    const handleRemoveVoucher = async () => {
+        if (!selectedOrder) return;
+        setVoucherLoading(true);
+        try {
+            const url = SummaryApi.remove_voucher_from_table_order.url.replace(':id', selectedOrder._id);
+            await Axios({ url, method: SummaryApi.remove_voucher_from_table_order.method });
+            setAppliedVoucher(null);
+            setVoucherCode('');
+            setVoucherError('');
+            setSelectedOrder(prev => ({ ...prev, total: prev.subTotal || prev.total, discount: 0 }));
+            toast.success('Đã hủy mã giảm giá.');
+        } catch {
+            toast.error('Không thể hủy mã giảm giá.');
+        } finally {
+            setVoucherLoading(false);
+        }
+    };
+
     const handleConfirmPayment = async () => {
         if (!selectedOrder) return;
         setConfirming(true);
@@ -171,6 +233,9 @@ const CashierDashboard = () => {
             if (res.data?.success) {
                 toast.success('Thanh toán thành công. Đơn hàng đã được hoàn tất.', { duration: 4000 });
                 setSelectedOrder(null);
+                setAppliedVoucher(null);
+                setVoucherCode('');
+                setVoucherError('');
                 fetchOrders();
             } else {
                 toast.error(res.data?.message || 'Lỗi xác nhận thanh toán.');
@@ -292,7 +357,12 @@ const CashierDashboard = () => {
                                     return (
                                         <div 
                                             key={order._id} 
-                                            onClick={() => setSelectedOrder(order)}
+                                            onClick={() => {
+                                                setSelectedOrder(order);
+                                                setAppliedVoucher(null);
+                                                setVoucherCode('');
+                                                setVoucherError('');
+                                            }}
                                             className={`rounded-xl overflow-hidden border transition-all cursor-pointer active:scale-[0.99] ${
                                                 isSelected 
                                                     ? 'border-[#C96048] shadow-lg' 
@@ -407,34 +477,69 @@ const CashierDashboard = () => {
                                         </div>
 
                                         <div className="p-5 space-y-4">
-                                            {/* Voucher input */}
+                                            {/* PB29 – Voucher section */}
                                             <div>
-                                                <label className="text-sm font-medium text-foreground mb-2 block">Mã giảm giá</label>
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={voucherCode}
-                                                        onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                                                        placeholder="Nhập mã giảm giá..."
-                                                        className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-background text-foreground"
-                                                    />
-                                                    <button
-                                                        className="px-4 py-2.5 rounded-xl text-sm font-semibold transition border border-border bg-accent hover:bg-accent/80 text-foreground"
-                                                    >
-                                                        Áp dụng
-                                                    </button>
-                                                </div>
+                                                <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                                                    <FiTag size={14} style={{ color: '#C96048' }} /> Mã giảm giá
+                                                </label>
+
+                                                {appliedVoucher ? (
+                                                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border"
+                                                        style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.35)' }}>
+                                                        <div>
+                                                            <p className="font-bold text-green-600 dark:text-green-400 text-sm">
+                                                                ✅ {appliedVoucher.voucherCode}
+                                                            </p>
+                                                            <p className="text-xs text-green-700 dark:text-green-300">
+                                                                {appliedVoucher.voucherName} – Giảm {appliedVoucher.discountAmount.toLocaleString('vi-VN')}đ
+                                                            </p>
+                                                        </div>
+                                                        <button onClick={handleRemoveVoucher} disabled={voucherLoading}
+                                                            className="text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition active:scale-95">
+                                                            <FiX size={16} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={voucherCode}
+                                                            onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(''); }}
+                                                            onKeyDown={(e) => e.key === 'Enter' && handleApplyVoucher()}
+                                                            placeholder="Nhập mã giảm giá..."
+                                                            className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-background text-foreground uppercase"
+                                                        />
+                                                        <button
+                                                            onClick={handleApplyVoucher}
+                                                            disabled={voucherLoading || !voucherCode.trim()}
+                                                            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition text-white disabled:opacity-50 active:scale-95"
+                                                            style={{ background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' }}
+                                                        >
+                                                            {voucherLoading ? '...' : 'Áp dụng'}
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {voucherError && (
+                                                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                                                        <FiX size={12} /> {voucherError}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             {/* Total summary */}
                                             <div className="space-y-2 pt-3 border-t border-border">
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-muted-foreground">Tạm tính:</span>
-                                                    <span className="font-medium text-foreground">{(selectedOrder.total || 0).toLocaleString('vi-VN')}đ</span>
+                                                    <span className="font-medium text-foreground">
+                                                        {(selectedOrder.subTotal || selectedOrder.total || 0).toLocaleString('vi-VN')}đ
+                                                    </span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-muted-foreground">Giảm giá:</span>
-                                                    <span className="font-medium text-green-600 dark:text-green-400">-0đ</span>
+                                                    <span className="font-medium text-green-600 dark:text-green-400">
+                                                        -{(appliedVoucher?.discountAmount || selectedOrder.discount || 0).toLocaleString('vi-VN')}đ
+                                                    </span>
                                                 </div>
                                                 <div className="flex justify-between items-center pt-2 border-t border-border">
                                                     <span className="text-lg font-bold text-foreground">Tổng cộng:</span>

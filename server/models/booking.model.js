@@ -63,6 +63,21 @@ const bookingSchema = new mongoose.Schema({
         enum: ['customer', 'admin'],
         default: 'customer'
     },
+    // Pre-order (Đặt món trước) - Optional for bookings
+    preOrderId: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'tableOrder',
+        default: null
+    },
+    hasPreOrder: {
+        type: Boolean,
+        default: false
+    },
+    preOrderTotal: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     // Deposit (Đặt cọc) - Required for groups ≥ 5 people (PB13)
     depositRequired: {
         type: Boolean,

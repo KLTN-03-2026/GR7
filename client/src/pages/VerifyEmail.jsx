@@ -6,7 +6,8 @@ import ShinyText from '@/components/animations/ShinyText';
 import { useTheme } from 'next-themes';
 
 // Background image URL
-const backgroundImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80';
+const backgroundImage =
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80';
 
 const VerifyEmail = () => {
     const { theme } = useTheme();
@@ -14,7 +15,7 @@ const VerifyEmail = () => {
     return (
         <div className="min-h-screen text-foreground transition-colors duration-300 overflow-hidden relative">
             {/* Background Image with Overlay */}
-            <div 
+            <div
                 className="absolute inset-0 z-0"
                 style={{
                     backgroundImage: `url(${backgroundImage})`,
@@ -24,23 +25,25 @@ const VerifyEmail = () => {
                 }}
             >
                 {/* Dark overlay layer */}
-                <div 
+                <div
                     className="absolute inset-0"
                     style={{
-                        backgroundColor: theme === 'dark' 
-                            ? 'rgba(0, 0, 0, 0.6)' 
-                            : 'rgba(0, 0, 0, 0.3)',
+                        backgroundColor:
+                            theme === 'dark'
+                                ? 'rgba(0, 0, 0, 0.6)'
+                                : 'rgba(0, 0, 0, 0.3)',
                     }}
                 />
-                
+
                 {/* Blur overlay layer */}
-                <div 
+                <div
                     className="absolute inset-0"
                     style={{
                         backdropFilter: 'blur(8px)',
-                        backgroundColor: theme === 'dark' 
-                            ? 'rgba(0, 0, 0, 0.3)' 
-                            : 'rgba(255, 255, 255, 0.7)',
+                        backgroundColor:
+                            theme === 'dark'
+                                ? 'rgba(0, 0, 0, 0.3)'
+                                : 'rgba(255, 255, 255, 0.7)',
                     }}
                 />
             </div>
@@ -63,9 +66,7 @@ const VerifyEmail = () => {
                                 text="EatEase"
                                 disabled={false}
                                 speed={3}
-                                color={
-                                    theme === 'dark' ? '#e5e5e5' : '#1a1a1a'
-                                }
+                                color={theme === 'dark' ? '#e5e5e5' : '#1a1a1a'}
                                 shineColor="#C96048"
                                 spread={90}
                             />

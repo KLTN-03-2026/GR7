@@ -61,14 +61,6 @@ const SummaryApi = {
         url: '/api/user/verify-password',
         method: 'post'
     },
-    get_available_vouchers: {
-        url: '/api/voucher/available',
-        method: 'post'
-    },
-    apply_voucher: {
-        url: '/api/voucher/apply',
-        method: 'post'
-    },
     change_password: {
         url: '/api/user/change-password',
         method: 'put'
@@ -229,6 +221,15 @@ const SummaryApi = {
         url: '/api/voucher/bulk-update-vouchers-status',
         method: 'put'
     },
+    // PB29 – Customer voucher apply & list
+    apply_voucher: {
+        url: '/api/voucher/apply',
+        method: 'post'
+    },
+    get_available_vouchers: {
+        url: '/api/voucher/available',
+        method: 'post'
+    },
 
     // AI Chat
     chat_message: {
@@ -365,7 +366,7 @@ const SummaryApi = {
         url: '/api/booking/create-payment-session',
         method: 'post'
     },
-    
+
     // Kitchen Workflow
     get_kitchen_active: {
         url: '/api/kitchen/active',
@@ -431,6 +432,16 @@ const SummaryApi = {
     cashier_confirm_payment: {
         url: '/api/table-order/cashier-confirm',
         method: 'post'
+    },
+
+    // PB29 – Cashier apply/remove voucher
+    apply_voucher_to_table_order: {
+        url: '/api/table-order/:id/apply-voucher',
+        method: 'patch'
+    },
+    remove_voucher_from_table_order: {
+        url: '/api/table-order/:id/remove-voucher',
+        method: 'patch'
     },
 
     // Service Requests (Gọi phục vụ)

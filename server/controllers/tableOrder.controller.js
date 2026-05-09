@@ -1,6 +1,7 @@
 import TableOrderModel from '../models/tableOrder.model.js';
 import ProductModel from '../models/product.model.js';
 import UserModel from '../models/user.model.js';
+import VoucherModel from '../models/voucher.model.js';
 import mongoose from 'mongoose';
 import Stripe from '../config/stripe.js';
 
@@ -450,6 +451,16 @@ export async function confirmCashierPayment(request, response) {
                 tableOrder.paymentStatus = 'paid';
                 tableOrder.paymentMethod = 'cash';
                 tableOrder.paidAt = new Date();
+
+                // Tăng usageCount voucher nếu có
+                if (tableOrder.voucherId) {
+                    await VoucherModel.findByIdAndUpdate(
+                        tableOrder.voucherId,
+                        { $inc: { usageCount: 1 } },
+                        { session }
+                    );
+                }
+
                 await tableOrder.save({ session });
             });
 
@@ -457,7 +468,12 @@ export async function confirmCashierPayment(request, response) {
                 message: 'Thanh toan thanh cong. Don hang da duoc hoan tat.',
                 error: false,
                 success: true,
-                data: { totalPaid: tableOrder.total, tableNumber: tableOrder.tableNumber }
+                data: {
+                    totalPaid: tableOrder.total,
+                    tableNumber: tableOrder.tableNumber,
+                    discount: tableOrder.discount || 0,
+                    subTotal: tableOrder.subTotal
+                }
             });
         } finally {
             await session.endSession();
@@ -690,6 +706,189 @@ export async function verifyStripeSession(request, response) {
 
     } catch (error) {
         console.error('[verifyStripeSession] Error:', error);
+        return response.status(500).json({
+            message: error.message || 'Lỗi server',
+            error: true, success: false
+        });
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PB29 – Apply Voucher to TableOrder (Cashier applies discount)
+// ─────────────────────────────────────────────────────────────────
+export async function applyVoucherToTableOrder(request, response) {
+    try {
+        const user = await UserModel.findById(request.userId);
+        if (!user || !['ADMIN', 'CASHIER'].includes(user.role)) {
+            return response.status(403).json({
+                message: 'Không có quyền thực hiện',
+                error: true, success: false
+            });
+        }
+
+        const { id } = request.params;
+        const { voucherCode } = request.body;
+
+        if (!voucherCode || !voucherCode.trim()) {
+            return response.status(400).json({
+                message: 'Vui lòng nhập mã giảm giá',
+                error: true, success: false
+            });
+        }
+
+        const tableOrder = await TableOrderModel.findById(id);
+        if (!tableOrder) {
+            return response.status(404).json({
+                message: 'Không tìm thấy hóa đơn',
+                error: true, success: false
+            });
+        }
+
+        if (tableOrder.status !== 'pending_payment') {
+            return response.status(400).json({
+                message: 'Hóa đơn không ở trạng thái chờ thanh toán',
+                error: true, success: false
+            });
+        }
+
+        // Find voucher
+        const voucher = await VoucherModel.findOne({ code: voucherCode.trim().toUpperCase() });
+
+        if (!voucher) {
+            return response.status(404).json({
+                message: 'Mã giảm giá không tồn tại',
+                error: true, success: false
+            });
+        }
+
+        if (!voucher.isActive) {
+            return response.status(400).json({
+                message: 'Mã giảm giá đã bị vô hiệu hóa',
+                error: true, success: false
+            });
+        }
+
+        const currentDate = new Date();
+        if (voucher.startDate && new Date(voucher.startDate) > currentDate) {
+            return response.status(400).json({
+                message: 'Mã giảm giá chưa đến thời gian áp dụng',
+                error: true, success: false
+            });
+        }
+
+        if (voucher.endDate && new Date(voucher.endDate) < currentDate) {
+            return response.status(400).json({
+                message: 'Mã giảm giá đã hết hạn',
+                error: true, success: false
+            });
+        }
+
+        // Check usage limit
+        if (voucher.usageLimit !== null && voucher.usageLimit !== -1 &&
+            voucher.usageCount >= voucher.usageLimit) {
+            return response.status(400).json({
+                message: 'Mã giảm giá đã hết lượt sử dụng',
+                error: true, success: false
+            });
+        }
+
+        const subTotal = tableOrder.subTotal;
+
+        if (subTotal < (voucher.minOrderValue || 0)) {
+            return response.status(400).json({
+                message: `Đơn hàng tối thiểu ${(voucher.minOrderValue || 0).toLocaleString('vi-VN')}đ để áp dụng mã này`,
+                error: true, success: false
+            });
+        }
+
+        // Calculate discount
+        let discountAmount = 0;
+        if (voucher.discountType === 'percentage') {
+            const raw = (subTotal * voucher.discountValue) / 100;
+            discountAmount = voucher.maxDiscount ? Math.min(raw, voucher.maxDiscount) : raw;
+        } else if (voucher.discountType === 'fixed') {
+            discountAmount = Math.min(voucher.discountValue, subTotal);
+        }
+        discountAmount = Math.round(discountAmount);
+
+        const newTotal = Math.max(0, subTotal - discountAmount);
+
+        // Persist to DB
+        tableOrder.discount = discountAmount;
+        tableOrder.voucherId = voucher._id;
+        tableOrder.total = newTotal;
+        await tableOrder.save();
+
+        return response.status(200).json({
+            message: 'Áp dụng mã giảm giá thành công',
+            error: false,
+            success: true,
+            data: {
+                voucherCode: voucher.code,
+                voucherName: voucher.name,
+                discountType: voucher.discountType,
+                discountValue: voucher.discountValue,
+                discountAmount,
+                subTotal,
+                newTotal,
+                maxDiscount: voucher.maxDiscount || null
+            }
+        });
+
+    } catch (error) {
+        console.error('[applyVoucherToTableOrder] Error:', error);
+        return response.status(500).json({
+            message: error.message || 'Lỗi server',
+            error: true, success: false
+        });
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PB29 – Remove Voucher from TableOrder (Cashier clears discount)
+// ─────────────────────────────────────────────────────────────────
+export async function removeVoucherFromTableOrder(request, response) {
+    try {
+        const user = await UserModel.findById(request.userId);
+        if (!user || !['ADMIN', 'CASHIER'].includes(user.role)) {
+            return response.status(403).json({
+                message: 'Không có quyền thực hiện',
+                error: true, success: false
+            });
+        }
+
+        const { id } = request.params;
+        const tableOrder = await TableOrderModel.findById(id);
+
+        if (!tableOrder) {
+            return response.status(404).json({
+                message: 'Không tìm thấy hóa đơn',
+                error: true, success: false
+            });
+        }
+
+        if (tableOrder.status !== 'pending_payment') {
+            return response.status(400).json({
+                message: 'Hóa đơn không ở trạng thái chờ thanh toán',
+                error: true, success: false
+            });
+        }
+
+        // Reset discount
+        tableOrder.discount = 0;
+        tableOrder.voucherId = null;
+        tableOrder.total = tableOrder.subTotal;
+        await tableOrder.save();
+
+        return response.status(200).json({
+            message: 'Đã hủy mã giảm giá',
+            error: false,
+            success: true,
+            data: { newTotal: tableOrder.total, subTotal: tableOrder.subTotal }
+        });
+
+    } catch (error) {
+        console.error('[removeVoucherFromTableOrder] Error:', error);
         return response.status(500).json({
             message: error.message || 'Lỗi server',
             error: true, success: false

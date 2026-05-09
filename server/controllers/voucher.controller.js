@@ -263,7 +263,7 @@ export const getAvailableVouchersController = async (req, res) => {
         // Check if user is first time customer
         const isFirstTimer = await checkFirstTimeCustomer(userId);
 
-        // Find all active vouchers
+        // Find all active + upcoming vouchers (startDate can be future)
         const vouchers = await VoucherModel.find({
             isActive: true,
             endDate: { $gte: currentDate },
@@ -276,13 +276,18 @@ export const getAvailableVouchersController = async (req, res) => {
 
         // Filter vouchers
         const applicableVouchers = vouchers.filter(voucher => {
+            const isUpcoming = new Date(voucher.startDate) > currentDate;
+
             // Check first time customer requirement
             if (voucher.isFirstTimeCustomer) {
                 if (!userId || !isFirstTimer) return false;
             }
 
-            // Check min order value
-            const meetsMinOrder = actualTotal >= voucher.minOrderValue;
+            // Upcoming vouchers: always show regardless of min order (so customers can preview)
+            if (isUpcoming) return true;
+
+            // Active vouchers: check min order value
+            const meetsMinOrder = actualTotal >= (voucher.minOrderValue || 0);
             if (!meetsMinOrder) return false;
 
             // Check product applicability
@@ -292,6 +297,7 @@ export const getAvailableVouchersController = async (req, res) => {
                 voucher.products.some(p => p.toString() === productId)
             );
         });
+
 
         // Format response
         const formattedVouchers = applicableVouchers.map(voucher => {
