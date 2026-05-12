@@ -443,6 +443,10 @@ const SummaryApi = {
         url: '/api/table-order/:id/remove-voucher',
         method: 'patch'
     },
+    apply_reward_points_to_table_order: {
+        url: '/api/table-order/:id/apply-reward-points',
+        method: 'patch'
+    },
 
     // Service Requests (Gọi phục vụ)
     call_waiter: {

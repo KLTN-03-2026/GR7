@@ -8,16 +8,10 @@ import Stripe from "../config/stripe.js";
 export async function createBookingController(request, response) {
     try {
         const {
-            customerName,
-            phone,
-            email,
-            tableId,
-            numberOfGuests,
-            bookingDate,
-            bookingTime,
-            specialRequests,
-            userId,
-            createdBy
+            customerName, phone, email, tableId,
+            numberOfGuests, bookingDate, bookingTime,
+            specialRequests, userId, createdBy,
+            preOrderItems  // optional array [{productId, name, price, quantity, image}]
         } = request.body;
 
         // Validation
@@ -78,20 +72,37 @@ export async function createBookingController(request, response) {
         }
 
         // Create booking
+        const sanitizedPreOrder = Array.isArray(preOrderItems)
+            ? preOrderItems.filter(i => i.productId && i.name && i.price > 0 && i.quantity > 0)
+            : [];
+
+        // ── Deposit formula ─────────────────────────────────────────────
+        // • Phí giữ bàn : 50.000đ/người  (khi số khách >= 5)
+        // • Cọc Pre-order: 100% giá trị các món đặt trước
+        // Áp dụng khi: số khách >= 5 HOẶC có Pre-order (tránh "bom hàng")
+        const preOrderCalcTotal = sanitizedPreOrder.reduce((s, i) => s + i.price * i.quantity, 0);
+        const guestDeposit      = numberOfGuests >= 5 ? numberOfGuests * 50000 : 0;
+        const preOrderDeposit   = preOrderCalcTotal; // 100% giá trị món
+        const totalDeposit      = guestDeposit + preOrderDeposit;
+
         const newBooking = new BookingModel({
             customerName,
             phone,
-            email: email || "",
+            email: email || '',
             tableId,
             numberOfGuests,
             bookingDate: selectedDate,
             bookingTime,
-            specialRequests: specialRequests || "",
+            specialRequests: specialRequests || '',
             userId: userId || null,
             createdBy: createdBy || 'customer',
             status: 'pending',
-            depositAmount: numberOfGuests > 4 ? numberOfGuests * 50000 : 0,
-            depositPaid: false
+            depositAmount: totalDeposit,
+            depositPaid: false,
+            // Pre-order
+            hasPreOrder:    sanitizedPreOrder.length > 0,
+            preOrderItems:  sanitizedPreOrder,
+            preOrderTotal:  preOrderCalcTotal,
         });
 
         const savedBooking = await newBooking.save();

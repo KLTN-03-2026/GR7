@@ -447,18 +447,24 @@ export async function confirmCashierPayment(request, response) {
         try {
             await session.withTransaction(async () => {
                 // tableOrder IS the order record — không cần tạo bản sao sang OrderModel nữa
-                tableOrder.status = 'paid';
+                tableOrder.status = 'Closed';
                 tableOrder.paymentStatus = 'paid';
                 tableOrder.paymentMethod = 'cash';
                 tableOrder.paidAt = new Date();
 
-                // Tăng usageCount voucher nếu có
-                if (tableOrder.voucherId) {
-                    await VoucherModel.findByIdAndUpdate(
-                        tableOrder.voucherId,
-                        { $inc: { usageCount: 1 } },
+                // Trừ điểm thưởng nếu khách hàng có sử dụng để giảm giá hóa đơn
+                if (tableOrder.pointsUsed > 0 && tableOrder.userId) {
+                    await UserModel.findByIdAndUpdate(
+                        tableOrder.userId,
+                        { $inc: { rewardsPoint: -tableOrder.pointsUsed } },
                         { session }
                     );
+                }
+
+                // Tích điểm thưởng mới dựa trên tổng tiền thanh toán thực tế
+                if (tableOrder.userId) {
+                    const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, session);
+                    tableOrder.rewardPointsEarned = earned;
                 }
 
                 await tableOrder.save({ session });
@@ -581,8 +587,8 @@ export async function handleStripeWebhook(request, response) {
                 return response.status(200).json({ received: true }); // Ack to Stripe
             }
 
-            // Idempotency: already paid
-            if (tableOrder.status === 'paid') {
+            // Idempotency: already Closed
+            if (tableOrder.status === 'Closed') {
                 return response.status(200).json({ received: true });
             }
 
@@ -603,10 +609,26 @@ export async function handleStripeWebhook(request, response) {
             try {
                 await dbSession.withTransaction(async () => {
                     // tableOrder IS the canonical order — không tạo bản sao OrderModel
-                    tableOrder.status = 'paid';
+                    tableOrder.status = 'Closed';
                     tableOrder.paymentStatus = 'paid';
                     tableOrder.paymentMethod = 'online';
                     tableOrder.paidAt = new Date();
+
+                    // Trừ điểm thưởng nếu khách hàng có sử dụng để giảm giá hóa đơn
+                    if (tableOrder.pointsUsed > 0 && tableOrder.userId) {
+                        await UserModel.findByIdAndUpdate(
+                            tableOrder.userId,
+                            { $inc: { rewardsPoint: -tableOrder.pointsUsed } },
+                            { session: dbSession }
+                        );
+                    }
+
+                    // Tích điểm thưởng mới dựa trên tổng tiền thanh toán thực tế
+                    if (tableOrder.userId) {
+                        const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, dbSession);
+                        tableOrder.rewardPointsEarned = earned;
+                    }
+
                     await tableOrder.save({ session: dbSession });
                 });
 
@@ -808,15 +830,18 @@ export async function applyVoucherToTableOrder(request, response) {
             discountAmount = voucher.maxDiscount ? Math.min(raw, voucher.maxDiscount) : raw;
         } else if (voucher.discountType === 'fixed') {
             discountAmount = Math.min(voucher.discountValue, subTotal);
+            discount = Math.min(voucher.discountValue, subTotal);
         }
-        discountAmount = Math.round(discountAmount);
+        discount = Math.round(discount);
 
-        const newTotal = Math.max(0, subTotal - discountAmount);
-
-        // Persist to DB
-        tableOrder.discount = discountAmount;
+        // Áp dụng giảm giá voucher
+        tableOrder.discount = discount;
         tableOrder.voucherId = voucher._id;
-        tableOrder.total = newTotal;
+
+        // Tính lại tổng tiền: subTotal - voucherDiscount - pointsDiscount
+        const pointsDiscount = tableOrder.pointsDiscount || 0;
+        tableOrder.total = Math.max(0, subTotal - discount - pointsDiscount);
+
         await tableOrder.save();
 
         return response.status(200).json({
@@ -874,10 +899,14 @@ export async function removeVoucherFromTableOrder(request, response) {
             });
         }
 
-        // Reset discount
+        // Reset voucher discount
         tableOrder.discount = 0;
         tableOrder.voucherId = null;
-        tableOrder.total = tableOrder.subTotal;
+
+        // Tính lại tổng tiền: subTotal - pointsDiscount (giữ lại phần giảm từ điểm)
+        const pointsDiscount = tableOrder.pointsDiscount || 0;
+        tableOrder.total = Math.max(0, tableOrder.subTotal - pointsDiscount);
+
         await tableOrder.save();
 
         return response.status(200).json({
@@ -891,6 +920,161 @@ export async function removeVoucherFromTableOrder(request, response) {
         console.error('[removeVoucherFromTableOrder] Error:', error);
         return response.status(500).json({
             message: error.message || 'Lỗi server',
+            error: true, success: false
+        });
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Loyalty System Helpers
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Tính điểm thưởng và cập nhật hạng thành viên
+ * @param {String} userId - ID của user (CUSTOMER)
+ * @param {Number} totalAmount - Tổng số tiền thanh toán thực tế
+ * @param {Session} session - Mongoose session cho transaction
+ */
+async function processLoyaltyPoints(userId, totalAmount, session) {
+    if (!userId) return 0;
+
+    const user = await UserModel.findById(userId).session(session);
+    if (!user || user.role !== 'CUSTOMER') return 0;
+
+    // Công thức: Điểm nhận được = (Tổng tiền / 10.000) * hệ số nhân hạng
+    const multiplier = user.tierBenefits?.pointsMultiplier || 1.0;
+    const earnedPoints = Math.floor((totalAmount / 10000) * multiplier);
+
+    if (earnedPoints <= 0) return 0;
+
+    // Cộng điểm vào tài khoản
+    user.rewardsPoint = (user.rewardsPoint || 0) + earnedPoints;
+
+    // Kiểm tra nâng hạng (tierLevel: bronze -> silver -> gold -> platinum)
+    // Ngưỡng điểm ví dụ: Silver >= 500, Gold >= 2000, Platinum >= 5000
+    const totalPoints = user.rewardsPoint;
+    let newTier = user.tierLevel;
+    let newMultiplier = multiplier;
+
+    if (totalPoints >= 5000) {
+        newTier = 'platinum';
+        newMultiplier = 2.0;
+    } else if (totalPoints >= 2000) {
+        newTier = 'gold';
+        newMultiplier = 1.5;
+    } else if (totalPoints >= 500) {
+        newTier = 'silver';
+        newMultiplier = 1.2;
+    }
+
+    if (newTier !== user.tierLevel) {
+        user.tierLevel = newTier;
+        if (!user.tierBenefits) user.tierBenefits = {};
+        user.tierBenefits.pointsMultiplier = newMultiplier;
+    }
+
+    await user.save({ session });
+    return earnedPoints;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PB29 – Apply Reward Points to TableOrder
+// ─────────────────────────────────────────────────────────────────
+export async function applyRewardPointsToTableOrder(request, response) {
+    try {
+        const user = await UserModel.findById(request.userId);
+        if (!user || !['ADMIN', 'CASHIER'].includes(user.role)) {
+            return response.status(403).json({
+                message: 'Không có quyền thực hiện',
+                error: true, success: false
+            });
+        }
+
+        const { id } = request.params; // tableOrderId
+        const { pointsToUse } = request.body;
+
+        if (!pointsToUse || pointsToUse < 1) {
+            return response.status(400).json({
+                message: 'Số điểm quy đổi không hợp lệ',
+                error: true, success: false
+            });
+        }
+
+        const tableOrder = await TableOrderModel.findById(id);
+        if (!tableOrder) {
+            return response.status(404).json({
+                message: 'Không tìm thấy hóa đơn',
+                error: true, success: false
+            });
+        }
+
+        if (tableOrder.status !== 'pending_payment') {
+            return response.status(400).json({
+                message: 'Hóa đơn không ở trạng thái chờ thanh toán',
+                error: true, success: false
+            });
+        }
+
+        // Tìm khách hàng sở hữu hóa đơn
+        if (!tableOrder.userId) {
+            return response.status(400).json({
+                message: 'Chỉ khách hàng có tài khoản thành viên mới có thể dùng điểm',
+                error: true, success: false
+            });
+        }
+
+        const customer = await UserModel.findById(tableOrder.userId);
+        if (!customer) {
+            return response.status(404).json({
+                message: 'Không tìm thấy thông tin thành viên của khách hàng',
+                error: true, success: false
+            });
+        }
+
+        if (customer.rewardsPoint < pointsToUse) {
+            return response.status(400).json({
+                message: `Khách hàng hiện chỉ có ${customer.rewardsPoint} điểm, không đủ để quy đổi`,
+                error: true, success: false
+            });
+        }
+
+        // Quy tắc quy đổi: 1 điểm = 1.000 VNĐ
+        const discountFromPoints = pointsToUse * 1000;
+
+        // Ràng buộc: Không giảm quá 50% tổng hóa đơn (để tránh lạm dụng)
+        const maxDiscountAllowed = tableOrder.subTotal * 0.5;
+        if (discountFromPoints > maxDiscountAllowed) {
+            return response.status(400).json({
+                message: `Chỉ được dùng tối đa ${Math.floor(maxDiscountAllowed / 1000)} điểm (giảm không quá 50% hóa đơn)`,
+                error: true, success: false
+            });
+        }
+
+        // Áp dụng giảm giá
+        tableOrder.pointsUsed = pointsToUse;
+        tableOrder.pointsDiscount = discountFromPoints;
+
+        // Tính lại tổng tiền: subTotal - voucherDiscount - pointsDiscount
+        const voucherDiscount = tableOrder.discount || 0;
+        tableOrder.total = Math.max(0, tableOrder.subTotal - voucherDiscount - discountFromPoints);
+
+        await tableOrder.save();
+
+        return response.status(200).json({
+            message: `Đã áp dụng đổi ${pointsToUse} điểm (Giảm ${discountFromPoints.toLocaleString('vi-VN')}đ)`,
+            error: false,
+            success: true,
+            data: {
+                pointsUsed: tableOrder.pointsUsed,
+                pointsDiscount: tableOrder.pointsDiscount,
+                total: tableOrder.total
+            }
+        });
+
+    } catch (error) {
+        console.error('Error applying reward points:', error);
+        return response.status(500).json({
+            message: error.message || 'Lỗi áp dụng đổi điểm',
             error: true, success: false
         });
     }

@@ -28,14 +28,14 @@ const ViewBookingDetails = ({ close, data }) => {
         return colorMap[status] || 'text-gray-600';
     };
 
-    const getPaymentStatusText = (status) => {
-        const statusMap = {
-            pending: 'Chưa thanh toán',
-            paid: 'Đã thanh toán',
-            failed: 'Thất bại',
-        };
-        return statusMap[status] || status || 'Chưa thanh toán';
-    };
+    // const getPaymentStatusText = (status) => {
+    //     const statusMap = {
+    //         pending: 'Chưa thanh toán',
+    //         paid: 'Đã thanh toán',
+    //         failed: 'Thất bại',
+    //     };
+    //     return statusMap[status] || status || 'Chưa thanh toán';
+    // };
 
     return (
         <section
@@ -174,65 +174,96 @@ const ViewBookingDetails = ({ close, data }) => {
                         </div>
                     </div>
 
-                    {data.hasPreOrder && data.preOrderId && (
-                        <>
-                            <Divider />
-                            <div>
-                                <h3 className="font-semibold text-base mb-3">
-                                    Thông tin đặt món trước
-                                </h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <div className="flex items-center gap-2 flex-1 pr-4">
-                                            <span className="font-medium">
-                                                {data.preOrderId.product_details
-                                                    ?.name || 'Combo món ăn'}
+                    {data.hasPreOrder &&
+                        data.preOrderItems &&
+                        data.preOrderItems.length > 0 && (
+                            <>
+                                <Divider />
+                                <div>
+                                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
+                                        🍽️ Danh sách món đặt trước
+                                    </h3>
+                                    <div className="space-y-3 bg-accent/20 p-4 rounded-lg">
+                                        <div className="space-y-2">
+                                            {data.preOrderItems.map(
+                                                (item, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex justify-between items-start text-sm"
+                                                    >
+                                                        <div className="flex gap-3">
+                                                            {item.image && (
+                                                                <img
+                                                                    src={
+                                                                        item.image
+                                                                    }
+                                                                    alt={
+                                                                        item.name
+                                                                    }
+                                                                    className="w-10 h-10 rounded object-cover"
+                                                                />
+                                                            )}
+                                                            <div>
+                                                                <p className="font-medium">
+                                                                    {item.name}
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {item.price?.toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}
+                                                                    đ x{' '}
+                                                                    {
+                                                                        item.quantity
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="font-medium">
+                                                            {(
+                                                                item.price *
+                                                                item.quantity
+                                                            ).toLocaleString(
+                                                                'vi-VN'
+                                                            )}
+                                                            đ
+                                                        </span>
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2 border-t border-dashed border-foreground/20 mt-2">
+                                            <span className="font-bold">
+                                                Tổng tiền món:
+                                            </span>
+                                            <span className="font-bold text-highlight text-lg">
+                                                {data.preOrderTotal?.toLocaleString(
+                                                    'vi-VN'
+                                                )}
+                                                đ
                                             </span>
                                         </div>
-                                        <span className="font-medium whitespace-nowrap">
-                                            {data.preOrderTotal?.toLocaleString(
-                                                'vi-VN'
-                                            )}
-                                            đ
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center pt-2 border-t border-dashed mt-2">
-                                        <span className="font-bold">
-                                            Tổng tiền món:
-                                        </span>
-                                        <span className="font-bold text-purple-600">
-                                            {data.preOrderTotal?.toLocaleString(
-                                                'vi-VN'
-                                            )}
-                                            đ
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-500">
-                                            Trạng thái thanh toán:
-                                        </span>
-                                        <span
-                                            className={`font-medium ${
-                                                [
-                                                    'paid',
-                                                    'Đã thanh toán',
-                                                ].includes(
-                                                    data.preOrderId
-                                                        .payment_status
-                                                )
-                                                    ? 'text-green-600'
-                                                    : 'text-yellow-600'
-                                            }`}
-                                        >
-                                            {getPaymentStatusText(
-                                                data.preOrderId.payment_status
-                                            )}
-                                        </span>
+
+                                        <div className="flex justify-between items-center text-xs mt-1">
+                                            <span className="text-muted-foreground">
+                                                Trạng thái:
+                                            </span>
+                                            <span
+                                                className={
+                                                    data.depositPaid
+                                                        ? 'text-green-600 font-medium'
+                                                        : 'text-yellow-600 font-medium'
+                                                }
+                                            >
+                                                {data.depositPaid
+                                                    ? 'Đã cọc (Bao gồm tiền món)'
+                                                    : 'Chờ thanh toán cọc'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </>
-                    )}
+                            </>
+                        )}
 
                     {data.specialRequests && (
                         <>

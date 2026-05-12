@@ -78,6 +78,14 @@ const bookingSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    // Embedded pre-order items (stored at booking time; converted to tableOrder when guest arrives)
+    preOrderItems: [{
+        productId: { type: mongoose.Schema.ObjectId, ref: 'product' },
+        name:      { type: String, required: true },
+        price:     { type: Number, required: true, min: 0 },
+        quantity:  { type: Number, required: true, min: 1, default: 1 },
+        image:     { type: String, default: '' }
+    }],
     // Deposit (Đặt cọc) - Required for groups ≥ 5 people (PB13)
     depositRequired: {
         type: Boolean,
@@ -119,17 +127,22 @@ bookingSchema.index({ phone: 1 });
 bookingSchema.index({ email: 1 });
 bookingSchema.index({ depositStatus: 1 }); // index cho deposit query
 
-// Middleware: Auto-set depositRequired based on numberOfGuests
+// Middleware: Auto-set depositRequired
+// Điều kiện: số khách >= 5 HOẶC khách có đặt món trước (hasPreOrder)
+// → tránh tình trạng "bom hàng" khi khách pre-order món đắt tiền rồi không đến
 bookingSchema.pre('save', function(next) {
-    if (this.numberOfGuests >= 5) {
+    const hasLargeParty  = this.numberOfGuests >= 5;
+    const hasPreOrdered  = this.hasPreOrder === true && this.preOrderTotal > 0;
+
+    if (hasLargeParty || hasPreOrdered) {
         this.depositRequired = true;
         if (this.depositStatus === 'not_required') {
             this.depositStatus = 'pending';
         }
     } else {
         this.depositRequired = false;
-        this.depositStatus = 'not_required';
-        this.depositAmount = 0;
+        this.depositStatus   = 'not_required';
+        this.depositAmount   = 0;
     }
     next();
 });

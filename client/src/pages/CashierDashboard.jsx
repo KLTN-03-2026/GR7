@@ -123,9 +123,15 @@ const CashierDashboard = () => {
     const [voucherCode, setVoucherCode] = useState('');
     const [customerPaid, setCustomerPaid] = useState('');
     // PB29 – Voucher state
-    const [appliedVoucher, setAppliedVoucher] = useState(null); // { code, name, discountAmount, newTotal }
+    const [appliedVoucher, setAppliedVoucher] = useState(null); 
     const [voucherLoading, setVoucherLoading] = useState(false);
     const [voucherError, setVoucherError] = useState('');
+
+    // Loyalty / Reward Points state
+    const [pointsToUse, setPointsToUse] = useState('');
+    const [pointsLoading, setPointsLoading] = useState(false);
+    const [pointsError, setPointsError] = useState('');
+    const [appliedPoints, setAppliedPoints] = useState(null); // { pointsUsed, discountAmount }
     
     const socketRef = useRef(null);
 
@@ -222,6 +228,34 @@ const CashierDashboard = () => {
         }
     };
 
+    // PB29 – Apply reward points
+    const handleApplyPoints = async () => {
+        if (!selectedOrder || !pointsToUse) return;
+        setPointsLoading(true);
+        setPointsError('');
+        try {
+            const url = SummaryApi.apply_reward_points_to_table_order.url.replace(':id', selectedOrder._id);
+            const res = await Axios({
+                url,
+                method: SummaryApi.apply_reward_points_to_table_order.method,
+                data: { pointsToUse: parseInt(pointsToUse) },
+            });
+            if (res.data?.success) {
+                const d = res.data.data;
+                setAppliedPoints({ pointsUsed: d.pointsUsed, discountAmount: d.pointsDiscount });
+                // Cập nhật local state order
+                setSelectedOrder(prev => ({ ...prev, total: d.total, pointsDiscount: d.pointsDiscount, pointsUsed: d.pointsUsed }));
+                toast.success(`Đã đổi ${d.pointsUsed} điểm! Giảm ${d.pointsDiscount.toLocaleString('vi-VN')}đ`);
+            } else {
+                setPointsError(res.data?.message || 'Không đổi điểm được.');
+            }
+        } catch (err) {
+            setPointsError(err?.response?.data?.message || 'Lỗi khi quy đổi điểm.');
+        } finally {
+            setPointsLoading(false);
+        }
+    };
+
     const handleConfirmPayment = async () => {
         if (!selectedOrder) return;
         setConfirming(true);
@@ -234,8 +268,11 @@ const CashierDashboard = () => {
                 toast.success('Thanh toán thành công. Đơn hàng đã được hoàn tất.', { duration: 4000 });
                 setSelectedOrder(null);
                 setAppliedVoucher(null);
+                setAppliedPoints(null);
                 setVoucherCode('');
+                setPointsToUse('');
                 setVoucherError('');
+                setPointsError('');
                 fetchOrders();
             } else {
                 toast.error(res.data?.message || 'Lỗi xác nhận thanh toán.');
@@ -360,8 +397,11 @@ const CashierDashboard = () => {
                                             onClick={() => {
                                                 setSelectedOrder(order);
                                                 setAppliedVoucher(null);
+                                                setAppliedPoints(null);
                                                 setVoucherCode('');
+                                                setPointsToUse('');
                                                 setVoucherError('');
+                                                setPointsError('');
                                             }}
                                             className={`rounded-xl overflow-hidden border transition-all cursor-pointer active:scale-[0.99] ${
                                                 isSelected 
@@ -527,6 +567,55 @@ const CashierDashboard = () => {
                                                 )}
                                             </div>
 
+                                            {/* Loyalty Points section */}
+                                            <div>
+                                                <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                                                    <FiDollarSign size={14} className="text-amber-500" /> Điểm thưởng thành viên
+                                                </label>
+
+                                                {appliedPoints ? (
+                                                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-amber-50/50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
+                                                        <div>
+                                                            <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">
+                                                                ✨ Đã dùng {appliedPoints.pointsUsed} điểm
+                                                            </p>
+                                                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                                                Giảm giá trực tiếp {appliedPoints.discountAmount.toLocaleString('vi-VN')}đ
+                                                            </p>
+                                                        </div>
+                                                        <button onClick={() => {
+                                                            setAppliedPoints(null);
+                                                            setSelectedOrder(prev => ({ ...prev, total: (prev.total || 0) + appliedPoints.discountAmount, pointsDiscount: 0, pointsUsed: 0 }));
+                                                        }}
+                                                        className="text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                                                            <FiX size={16} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="number"
+                                                            value={pointsToUse}
+                                                            onChange={(e) => { setPointsToUse(e.target.value); setPointsError(''); }}
+                                                            placeholder="Số điểm muốn dùng..."
+                                                            className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-background text-foreground"
+                                                        />
+                                                        <button
+                                                            onClick={handleApplyPoints}
+                                                            disabled={pointsLoading || !pointsToUse}
+                                                            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 active:scale-95 shadow-sm"
+                                                        >
+                                                            {pointsLoading ? '...' : 'Đổi điểm'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {pointsError && (
+                                                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                                                        <FiX size={12} /> {pointsError}
+                                                    </p>
+                                                )}
+                                            </div>
+
                                             {/* Total summary */}
                                             <div className="space-y-2 pt-3 border-t border-border">
                                                 <div className="flex justify-between text-sm">
@@ -536,9 +625,15 @@ const CashierDashboard = () => {
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Giảm giá:</span>
+                                                    <span className="text-muted-foreground">Giảm mã Voucher:</span>
                                                     <span className="font-medium text-green-600 dark:text-green-400">
                                                         -{(appliedVoucher?.discountAmount || selectedOrder.discount || 0).toLocaleString('vi-VN')}đ
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Giảm điểm thưởng:</span>
+                                                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                                                        -{(appliedPoints?.discountAmount || selectedOrder.pointsDiscount || 0).toLocaleString('vi-VN')}đ
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center pt-2 border-t border-border">

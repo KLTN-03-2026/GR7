@@ -12,7 +12,8 @@ import {
     handleStripeWebhook,
     verifyStripeSession,
     applyVoucherToTableOrder,
-    removeVoucherFromTableOrder
+    removeVoucherFromTableOrder,
+    applyRewardPointsToTableOrder
 } from '../controllers/tableOrder.controller.js';
 
 
@@ -40,5 +41,6 @@ tableOrderRouter.get('/verify-stripe-session', auth, verifyStripeSession);
 // PB29 – Cashier apply / remove voucher discount
 tableOrderRouter.patch('/:id/apply-voucher', auth, applyVoucherToTableOrder);
 tableOrderRouter.patch('/:id/remove-voucher', auth, removeVoucherFromTableOrder);
+tableOrderRouter.patch('/:id/apply-reward-points', auth, applyRewardPointsToTableOrder);
 
 export default tableOrderRouter;

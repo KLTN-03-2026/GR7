@@ -97,7 +97,7 @@ const tableOrderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'completed', 'pending_payment', 'paid', 'cancelled'],
+        enum: ['active', 'completed', 'pending_payment', 'paid', 'cancelled', 'Closed'],
         default: 'active'
     },
     sentToKitchenAt: {
@@ -154,6 +154,22 @@ const tableOrderSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    // Loyalty / Reward Points usage
+    pointsUsed: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    pointsDiscount: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    rewardPointsEarned: {
+        type: Number,
+        default: 0,
+        min: 0
+    }
 }, {
     timestamps: true
 });
