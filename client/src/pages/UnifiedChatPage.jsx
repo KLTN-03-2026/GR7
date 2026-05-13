@@ -147,12 +147,12 @@ export default function UnifiedChatPage() {
         else sendSupportMessageHandler();
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
+    // const handleKeyDown = (e) => {
+    //     if (e.key === 'Enter' && !e.shiftKey) {
+    //         e.preventDefault();
+    //         handleSend();
+    //     }
+    // };
 
     const isAIActive = selectedId === 'ai';
     const isSupportActive = selectedId === 'support';
@@ -423,19 +423,36 @@ export default function UnifiedChatPage() {
                         <div className="flex items-end gap-3 bg-background dark:bg-gray-950 border border-border rounded-xl px-3 py-2 focus-within:border-violet-400 transition-all">
                             <textarea
                                 value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
+                                onChange={(e) => {
+                                    setInput(e.target.value);
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                        e.target.style.height = 'auto';
+                                    }
+                                }}
                                 placeholder="Nhập câu hỏi của bạn..."
                                 rows={1}
                                 disabled={aiLoading}
-                                className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed max-h-24 overflow-y-auto placeholder:text-muted-foreground text-foreground"
+                                className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed overflow-y-auto placeholder:text-muted-foreground text-foreground py-0.5"
+                                style={{ minHeight: '24px' }}
                             />
                             <button
-                                onClick={handleSend}
+                                onClick={() => {
+                                    handleSend();
+                                    const textarea =
+                                        document.querySelector('textarea');
+                                    if (textarea)
+                                        textarea.style.height = 'auto';
+                                }}
                                 disabled={
                                     !input.trim() || aiLoading || aiCooldown > 0
                                 }
-                                className="shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm text-[11px] font-bold"
+                                className="shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm text-[11px] font-bold mb-0.5"
                                 style={{
                                     background:
                                         'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
@@ -651,19 +668,39 @@ export default function UnifiedChatPage() {
                                 <div className="flex items-end gap-3 bg-background dark:bg-gray-950 border border-border rounded-xl px-3 py-2 focus-within:border-[#C96048] transition-all">
                                     <textarea
                                         value={input}
-                                        onChange={(e) =>
-                                            setInput(e.target.value)
-                                        }
-                                        onKeyDown={handleKeyDown}
+                                        onChange={(e) => {
+                                            setInput(e.target.value);
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (
+                                                e.key === 'Enter' &&
+                                                !e.shiftKey
+                                            ) {
+                                                e.preventDefault();
+                                                handleSend();
+                                                e.target.style.height = 'auto';
+                                            }
+                                        }}
                                         placeholder="Nhập tin nhắn của bạn..."
                                         rows={1}
                                         disabled={!connected}
-                                        className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed max-h-24 overflow-y-auto placeholder:text-muted-foreground text-foreground"
+                                        className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed overflow-y-auto placeholder:text-muted-foreground text-foreground py-0.5"
+                                        style={{ minHeight: '24px' }}
                                     />
                                     <button
-                                        onClick={handleSend}
+                                        onClick={() => {
+                                            handleSend();
+                                            const textarea =
+                                                document.querySelector(
+                                                    'textarea'
+                                                );
+                                            if (textarea)
+                                                textarea.style.height = 'auto';
+                                        }}
                                         disabled={!input.trim() || !connected}
-                                        className="shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                                        className="shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm mb-0.5"
                                         style={{
                                             background:
                                                 'linear-gradient(135deg, #C96048, #d97a66)',

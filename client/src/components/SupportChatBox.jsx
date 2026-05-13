@@ -417,23 +417,37 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                         ✨ Bắt đầu chat mới
                                     </button>
                                 ) : (
-                                    <div className="flex items-end gap-2 rounded-xl px-3 py-2 bg-background dark:bg-gray-950 border border-border">
+                                    <div className="flex items-end gap-2 rounded-xl px-3 py-2 bg-background dark:bg-gray-950 border border-border focus-within:border-[#C96048]/50 transition-colors">
                                         <textarea
                                             ref={inputRef}
                                             value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            onKeyDown={handleKeyDown}
+                                            onChange={(e) => {
+                                                setInput(e.target.value);
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleSend();
+                                                    e.target.style.height = 'auto';
+                                                }
+                                            }}
                                             placeholder="Nhập tin nhắn..."
                                             rows={1}
                                             disabled={!connected}
-                                            className="flex-1 resize-none bg-transparent text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none leading-relaxed max-h-24 overflow-y-auto text-foreground"
+                                            className="flex-1 resize-none bg-transparent text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none leading-relaxed overflow-y-auto text-foreground py-0.5"
+                                            style={{ minHeight: '24px' }}
                                         />
                                         <button
-                                            onClick={handleSend}
+                                            onClick={() => {
+                                                handleSend();
+                                                if (inputRef.current) inputRef.current.style.height = 'auto';
+                                            }}
                                             disabled={!input.trim() || !connected}
                                             className="flex-shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center
                                                        hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed
-                                                       transition active:scale-95 cursor-pointer shadow"
+                                                       transition active:scale-95 cursor-pointer shadow mb-0.5"
                                             style={{ background: 'linear-gradient(135deg, #C96048, #d97a66)' }}
                                         >
                                             <Send size={13} />

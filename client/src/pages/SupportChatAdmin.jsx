@@ -217,12 +217,12 @@ export default function SupportChatAdmin() {
         setInput('');
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
+    // const handleKeyDown = (e) => {
+    //     if (e.key === 'Enter' && !e.shiftKey) {
+    //         e.preventDefault();
+    //         handleSend();
+    //     }
+    // };
 
     const handleClose = async () => {
         if (!selectedId) return;
@@ -411,19 +411,36 @@ export default function SupportChatAdmin() {
                                 Hội thoại đã đóng
                             </p>
                         ) : (
-                            <div className="flex items-end gap-3 bg-muted/50 rounded-xl px-4 py-2.5 border border-border">
+                            <div className="flex items-end gap-3 bg-muted/50 rounded-xl px-4 py-2.5 border border-border focus-within:border-emerald-500/50 transition-colors">
                                 <textarea
                                     value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={handleKeyDown}
+                                    onChange={(e) => {
+                                        setInput(e.target.value);
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSend();
+                                            e.target.style.height = 'auto';
+                                        }
+                                    }}
                                     placeholder="Nhập tin nhắn trả lời..."
                                     rows={1}
-                                    className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed max-h-24 overflow-y-auto placeholder:text-muted-foreground"
+                                    className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed overflow-y-auto placeholder:text-muted-foreground py-0.5"
+                                    style={{ minHeight: '24px' }}
                                 />
                                 <button
-                                    onClick={handleSend}
+                                    onClick={() => {
+                                        handleSend();
+                                        const textarea =
+                                            document.querySelector('textarea');
+                                        if (textarea)
+                                            textarea.style.height = 'auto';
+                                    }}
                                     disabled={!input.trim()}
-                                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow"
+                                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow mb-0.5"
                                 >
                                     <Send size={14} />
                                 </button>
