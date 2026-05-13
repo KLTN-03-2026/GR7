@@ -33,19 +33,26 @@ function ChatBubble({ msg }) {
             {!isUser && (
                 <div
                     className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center shadow-md"
-                    style={{ background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' }}
+                    style={{
+                        background:
+                            'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                    }}
                 >
                     <Headphones size={13} className="text-white" />
                 </div>
             )}
             <div
                 className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                    isUser ? 'text-white rounded-br-sm' : 'bg-card dark:bg-gray-800 text-foreground rounded-bl-sm border border-border'
+                    isUser
+                        ? 'text-white rounded-br-sm'
+                        : 'bg-card dark:bg-gray-800 text-foreground rounded-bl-sm border border-border'
                 }`}
                 style={{
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
-                    background: isUser ? 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' : undefined,
+                    background: isUser
+                        ? 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)'
+                        : undefined,
                 }}
             >
                 {msg.text}
@@ -59,7 +66,10 @@ function TypingIndicator() {
         <div className="flex gap-2 items-end mb-3">
             <div
                 className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center shadow-md"
-                style={{ background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' }}
+                style={{
+                    background:
+                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                }}
             >
                 <Headphones size={13} className="text-white" />
             </div>
@@ -165,12 +175,12 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
         setInput('');
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
+    // const handleKeyDown = (e) => {
+    //     if (e.key === 'Enter' && !e.shiftKey) {
+    //         e.preventDefault();
+    //         handleSend();
+    //     }
+    // };
 
     const handleNewChat = () => {
         startNewChat();
@@ -196,11 +206,13 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                         rounded-none md:rounded-2xl
                         md:bottom-6 md:right-28 md:w-[360px]`}
             style={{
-                boxShadow: theme === 'dark'
-                    ? '0 24px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(201,96,72,0.15)'
-                    : '0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(201,96,72,0.08)',
+                boxShadow:
+                    theme === 'dark'
+                        ? '0 24px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(201,96,72,0.15)'
+                        : '0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(201,96,72,0.08)',
                 backdropFilter: 'blur(16px)',
-                animation: 'chatbox-pop-in 0.28s cubic-bezier(0.34,1.56,0.64,1) both',
+                animation:
+                    'chatbox-pop-in 0.28s cubic-bezier(0.34,1.56,0.64,1) both',
             }}
         >
             <style>{`
@@ -213,7 +225,10 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
             {/* Header */}
             <div
                 className="flex items-center justify-between px-4 py-3 md:py-3 flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' }}
+                style={{
+                    background:
+                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                }}
             >
                 <div className="flex items-center gap-2.5">
                     <div className="relative w-9 h-9 rounded-full bg-white/15 backdrop-blur flex items-center justify-center shadow-inner">
@@ -223,7 +238,11 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                     <div>
                         <p
                             className="text-white font-semibold text-sm leading-tight"
-                            style={{ fontFamily: 'Bahnschrift, system-ui, sans-serif', letterSpacing: '0.01em' }}
+                            style={{
+                                fontFamily:
+                                    'Bahnschrift, system-ui, sans-serif',
+                                letterSpacing: '0.01em',
+                            }}
                         >
                             Hỗ trợ trực tiếp
                         </p>
@@ -237,7 +256,10 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                 </>
                             ) : (
                                 <>
-                                    <WifiOff size={9} className="text-red-300" />
+                                    <WifiOff
+                                        size={9}
+                                        className="text-red-300"
+                                    />
                                     <p className="text-red-200 text-[10.5px] tracking-wide">
                                         Mất kết nối
                                     </p>
@@ -295,7 +317,10 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4 bg-background dark:bg-gray-950">
                             <div
                                 className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
-                                style={{ background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' }}
+                                style={{
+                                    background:
+                                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                }}
                             >
                                 <Headphones size={30} className="text-white" />
                             </div>
@@ -313,7 +338,9 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                             >
                                 <input
                                     value={tempGuestName}
-                                    onChange={(e) => setTempGuestName(e.target.value)}
+                                    onChange={(e) =>
+                                        setTempGuestName(e.target.value)
+                                    }
                                     placeholder="Nhập tên của bạn..."
                                     className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition bg-card dark:bg-gray-800 border border-border text-foreground"
                                     autoFocus
@@ -322,8 +349,10 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                     type="submit"
                                     className="w-full py-2.5 rounded-xl text-white text-sm font-medium cursor-pointer hover:opacity-90 transition shadow-md"
                                     style={{
-                                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                        boxShadow: '0 4px 12px rgba(201,96,72,0.3)',
+                                        background:
+                                            'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                        boxShadow:
+                                            '0 4px 12px rgba(201,96,72,0.3)',
                                     }}
                                 >
                                     Bắt đầu chat
@@ -366,7 +395,8 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                         <div className="text-center text-sm mt-6 text-muted-foreground">
                                             <p>👋 Xin chào {customerName}!</p>
                                             <p className="mt-1">
-                                                Nhân viên sẽ phản hồi sớm nhất có thể.
+                                                Nhân viên sẽ phản hồi sớm nhất
+                                                có thể.
                                             </p>
                                         </div>
                                     )}
@@ -379,21 +409,25 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                 {isClosed && (
                                     <div className="text-center py-3 mt-2 flex flex-col items-center gap-2 border-t border-border">
                                         <p className="text-xs text-muted-foreground">
-                                            Hội thoại đã được đóng. Cảm ơn bạn đã liên hệ!
+                                            Hội thoại đã được đóng. Cảm ơn bạn
+                                            đã liên hệ!
                                         </p>
-                                        {chatDaysLeft !== null && chatDaysLeft >= 0 && (
-                                            <p className="text-[10px] text-muted-foreground/70 italic">
-                                                {chatDaysLeft > 0
-                                                    ? `📋 Lịch sử chat sẽ tự xóa sau ${chatDaysLeft} ngày`
-                                                    : '📋 Lịch sử chat sẽ sớm bị xóa'}
-                                            </p>
-                                        )}
+                                        {chatDaysLeft !== null &&
+                                            chatDaysLeft >= 0 && (
+                                                <p className="text-[10px] text-muted-foreground/70 italic">
+                                                    {chatDaysLeft > 0
+                                                        ? `📋 Lịch sử chat sẽ tự xóa sau ${chatDaysLeft} ngày`
+                                                        : '📋 Lịch sử chat sẽ sớm bị xóa'}
+                                                </p>
+                                            )}
                                         <button
                                             onClick={handleNewChat}
                                             className="px-4 py-1.5 rounded-full text-xs font-medium text-white hover:opacity-90 active:scale-95 transition cursor-pointer shadow-md"
                                             style={{
-                                                background: 'linear-gradient(135deg, #C96048, #d97a66)',
-                                                boxShadow: '0 4px 12px rgba(201,96,72,0.3)',
+                                                background:
+                                                    'linear-gradient(135deg, #C96048, #d97a66)',
+                                                boxShadow:
+                                                    '0 4px 12px rgba(201,96,72,0.3)',
                                             }}
                                         >
                                             ✨ Bắt đầu chat mới
@@ -410,8 +444,10 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                         onClick={handleNewChat}
                                         className="w-full py-2 rounded-xl text-white text-sm font-medium cursor-pointer hover:opacity-90 active:scale-[0.98] transition shadow-md"
                                         style={{
-                                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                            boxShadow: '0 4px 12px rgba(201,96,72,0.3)',
+                                            background:
+                                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                            boxShadow:
+                                                '0 4px 12px rgba(201,96,72,0.3)',
                                         }}
                                     >
                                         ✨ Bắt đầu chat mới
@@ -427,10 +463,14 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                                 e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                                             }}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                if (
+                                                    e.key === 'Enter' &&
+                                                    !e.shiftKey
+                                                ) {
                                                     e.preventDefault();
                                                     handleSend();
-                                                    e.target.style.height = 'auto';
+                                                    e.target.style.height =
+                                                        'auto';
                                                 }
                                             }}
                                             placeholder="Nhập tin nhắn..."
@@ -442,13 +482,20 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                         <button
                                             onClick={() => {
                                                 handleSend();
-                                                if (inputRef.current) inputRef.current.style.height = 'auto';
+                                                if (inputRef.current)
+                                                    inputRef.current.style.height =
+                                                        'auto';
                                             }}
-                                            disabled={!input.trim() || !connected}
+                                            disabled={
+                                                !input.trim() || !connected
+                                            }
                                             className="flex-shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center
                                                        hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed
                                                        transition active:scale-95 cursor-pointer shadow mb-0.5"
-                                            style={{ background: 'linear-gradient(135deg, #C96048, #d97a66)' }}
+                                            style={{
+                                                background:
+                                                    'linear-gradient(135deg, #C96048, #d97a66)',
+                                            }}
                                         >
                                             <Send size={13} />
                                         </button>
