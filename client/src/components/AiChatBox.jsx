@@ -14,7 +14,9 @@ const QUICK_SUGGESTIONS = [
 function ChatBubble({ role, text }) {
     const isUser = role === 'user';
     return (
-        <div className={`flex gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end mb-2.5`}>
+        <div
+            className={`flex gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end mb-2.5`}
+        >
             {!isUser && (
                 <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
                     <Bot size={13} className="text-white" />
@@ -29,7 +31,9 @@ function ChatBubble({ role, text }) {
                 style={{
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
-                    background: isUser ? 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' : undefined,
+                    background: isUser
+                        ? 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)'
+                        : undefined,
                 }}
             >
                 {text}
@@ -68,7 +72,8 @@ function TypingIndicator() {
  */
 export default function AiChatBox({ isOpen = false, onClose }) {
     const { theme } = useTheme();
-    const { aiMessages, aiLoading, aiCooldown, sendAIMessage } = useSupportChat();
+    const { aiMessages, aiLoading, aiCooldown, sendAIMessage } =
+        useSupportChat();
 
     const [isMinimized, setIsMinimized] = useState(false);
     const [input, setInput] = useState('');
@@ -98,11 +103,14 @@ export default function AiChatBox({ isOpen = false, onClose }) {
         setInput('');
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-    };
+    // const handleKeyDown = (e) => {
+    //     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    // };
 
-    const handleClose = () => { setIsMinimized(false); onClose?.(); };
+    const handleClose = () => {
+        setIsMinimized(false);
+        onClose?.();
+    };
 
     if (!isOpen) return null;
 
@@ -117,11 +125,13 @@ export default function AiChatBox({ isOpen = false, onClose }) {
                         rounded-none md:rounded-2xl
                         md:bottom-6 md:right-28 md:w-[360px]`}
             style={{
-                boxShadow: theme === 'dark'
-                    ? '0 24px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(124,58,237,0.15)'
-                    : '0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(201,96,72,0.08)',
+                boxShadow:
+                    theme === 'dark'
+                        ? '0 24px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(124,58,237,0.15)'
+                        : '0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(201,96,72,0.08)',
                 backdropFilter: 'blur(16px)',
-                animation: 'chat-open 0.28s cubic-bezier(0.34,1.56,0.64,1) both',
+                animation:
+                    'chat-open 0.28s cubic-bezier(0.34,1.56,0.64,1) both',
             }}
         >
             <style>{`
@@ -140,7 +150,10 @@ export default function AiChatBox({ isOpen = false, onClose }) {
             {/* ── Header ── */}
             <div
                 className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' }}
+                style={{
+                    background:
+                        'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                }}
             >
                 <div className="flex items-center gap-2.5">
                     <div className="relative w-9 h-9 rounded-full bg-white/15 backdrop-blur flex items-center justify-center shadow-inner">
@@ -148,7 +161,14 @@ export default function AiChatBox({ isOpen = false, onClose }) {
                         <span className="absolute inset-0 rounded-full ring-1 ring-white/25" />
                     </div>
                     <div>
-                        <p className="text-white font-semibold text-sm leading-tight" style={{ fontFamily: 'Bahnschrift, system-ui, sans-serif', letterSpacing: '0.01em' }}>
+                        <p
+                            className="text-white font-semibold text-sm leading-tight"
+                            style={{
+                                fontFamily:
+                                    'Bahnschrift, system-ui, sans-serif',
+                                letterSpacing: '0.01em',
+                            }}
+                        >
                             Trợ lý AI
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -173,7 +193,10 @@ export default function AiChatBox({ isOpen = false, onClose }) {
                         onClick={() => setIsMinimized((v) => !v)}
                         className="hidden md:flex w-7 h-7 rounded-full hover:bg-white/15 items-center justify-center text-white/70 hover:text-white transition cursor-pointer"
                     >
-                        <ChevronDown size={15} className={`transition-transform duration-200 ${isMinimized ? 'rotate-180' : ''}`} />
+                        <ChevronDown
+                            size={15}
+                            className={`transition-transform duration-200 ${isMinimized ? 'rotate-180' : ''}`}
+                        />
                     </button>
                     <button
                         onClick={handleClose}
@@ -201,7 +224,11 @@ export default function AiChatBox({ isOpen = false, onClose }) {
                     {/* Messages area */}
                     <div className="ai-chat-scroll flex-1 overflow-y-auto px-3 pt-4 pb-2 bg-background dark:bg-gray-950">
                         {aiMessages.map((msg, i) => (
-                            <ChatBubble key={i} role={msg.role} text={msg.text} />
+                            <ChatBubble
+                                key={i}
+                                role={msg.role}
+                                text={msg.text}
+                            />
                         ))}
                         {aiLoading && <TypingIndicator />}
                         <div ref={messagesEndRef} />
@@ -229,26 +256,51 @@ export default function AiChatBox({ isOpen = false, onClose }) {
 
                     {/* Input bar */}
                     <div className="px-3 pb-3 pt-2 flex-shrink-0 border-t border-border bg-card dark:bg-gray-900">
-                        <div className="flex items-end gap-2 rounded-xl px-3 py-2 bg-background dark:bg-gray-950 border border-border">
+                        <div className="flex items-end gap-2 rounded-xl px-3 py-2 bg-background dark:bg-gray-950 border border-border focus-within:border-violet-500/50 transition-colors">
                             <textarea
                                 ref={inputRef}
                                 value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
+                                onChange={(e) => {
+                                    setInput(e.target.value);
+                                    // Auto-expand logic
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                        e.target.style.height = 'auto'; // Reset height after send
+                                    }
+                                }}
                                 placeholder="Hỏi tôi bất cứ điều gì..."
                                 rows={1}
                                 disabled={aiLoading}
-                                className="flex-1 resize-none bg-transparent text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none leading-relaxed max-h-24 overflow-y-auto text-foreground"
+                                className="flex-1 resize-none bg-transparent text-sm placeholder-gray-400 dark:placeholder-gray-500 outline-none leading-relaxed overflow-y-auto text-foreground py-0.5"
+                                style={{ minHeight: '24px' }}
                             />
                             <button
-                                onClick={() => handleSend()}
-                                disabled={aiLoading || !input.trim() || aiCooldown > 0}
+                                onClick={() => {
+                                    handleSend();
+                                    if (inputRef.current)
+                                        inputRef.current.style.height = 'auto';
+                                }}
+                                disabled={
+                                    aiLoading || !input.trim() || aiCooldown > 0
+                                }
                                 className="flex-shrink-0 w-8 h-8 rounded-lg text-white flex items-center justify-center
                                            hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed
-                                           transition active:scale-95 cursor-pointer text-[11px] font-bold shadow"
-                                style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                                           transition active:scale-95 cursor-pointer text-[11px] font-bold shadow mb-0.5"
+                                style={{
+                                    background:
+                                        'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                                }}
                             >
-                                {aiCooldown > 0 ? aiCooldown : <Send size={13} />}
+                                {aiCooldown > 0 ? (
+                                    aiCooldown
+                                ) : (
+                                    <Send size={13} />
+                                )}
                             </button>
                         </div>
                         <p className="text-center text-[10px] mt-1.5 text-muted-foreground">

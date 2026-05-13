@@ -10,9 +10,22 @@ import { useSelector } from 'react-redux';
 import { getSocket, destroySocket } from '../utils/socket';
 import Axios from '../utils/Axios';
 import SummaryApi from '../common/SummaryApi';
-const AI_GREETING = 'Xin chào! Tôi là trợ lý AI của EatEase 🍽️. Tôi có thể giúp bạn tìm món ăn, giải đáp thắc mắc về đặt bàn, chính sách và nhiều hơn nữa. Bạn cần hỗ trợ gì?';
+const AI_GREETING =
+    'Xin chào! Tôi là trợ lý AI của EatEase 🍽️. Tôi có thể giúp bạn tìm món ăn, giải đáp thắc mắc về đặt bàn, chính sách và nhiều hơn nữa. Bạn cần hỗ trợ gì?';
+const GUEST_AI_TTL_DAYS = 3; // Guest chat history tự xóa sau 3 ngày
+const GUEST_AI_LIMIT = 10; // Giới hạn 10 tin nhắn/ngày cho Guest
+
 function getAiStorageKey(userId) {
     return userId ? `tc_ai_messages_${userId}` : 'tc_ai_messages_guest';
+}
+function getAiTimestampKey(userId) {
+    return userId ? null : 'tc_ai_messages_guest_ts';
+}
+function getAiGuestLimitKey() {
+    return 'tc_ai_guest_msg_count';
+}
+function getAiGuestLastResetKey() {
+    return 'tc_ai_guest_last_reset';
 }
 
 // Dùng prefix để phân biệt guest session và user session
@@ -49,10 +62,12 @@ export const SupportChatProvider = ({ children }) => {
     const [nameEntered, setNameEntered] = useState(false);
     const [guestName, setGuestName] = useState('');
     const [chatExpiresAt, setChatExpiresAt] = useState(null); // TTL info
-    const [chatDaysLeft, setChatDaysLeft] = useState(null);   // TTL info
+    const [chatDaysLeft, setChatDaysLeft] = useState(null); // TTL info
 
     // AI chat shared state
-    const [aiMessages, setAiMessages] = useState([{ role: 'bot', text: AI_GREETING }]);
+    const [aiMessages, setAiMessages] = useState([
+        { role: 'bot', text: AI_GREETING },
+    ]);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiCooldown, setAiCooldown] = useState(0);
     const aiCooldownRef = useRef(null);
@@ -311,7 +326,26 @@ export const SupportChatProvider = ({ children }) => {
         prevAiUserIdRef.current = userId;
 
         const key = getAiStorageKey(userId);
+        const tsKey = getAiTimestampKey(userId);
         try {
+            // Guest TTL check — xóa history nếu quá hạn
+            if (!userId && tsKey) {
+                const savedTs = localStorage.getItem(tsKey);
+                if (savedTs) {
+                    const daysPassed =
+                        (Date.now() - Number(savedTs)) / (1000 * 60 * 60 * 24);
+                    if (daysPassed >= GUEST_AI_TTL_DAYS) {
+                        console.log(
+                            `[AI Chat] Guest history expired (${Math.floor(daysPassed)} days), clearing...`
+                        );
+                        localStorage.removeItem(key);
+                        localStorage.removeItem(tsKey);
+                        setAiMessages([{ role: 'bot', text: AI_GREETING }]);
+                        return;
+                    }
+                }
+            }
+
             const saved = localStorage.getItem(key);
             if (saved) {
                 setAiMessages(JSON.parse(saved));
@@ -326,9 +360,17 @@ export const SupportChatProvider = ({ children }) => {
     useEffect(() => {
         const userId = user?._id || null;
         const key = getAiStorageKey(userId);
+        const tsKey = getAiTimestampKey(userId);
         if (aiMessages.length > 1) {
             try {
-                localStorage.setItem(key, JSON.stringify(aiMessages.slice(-50)));
+                localStorage.setItem(
+                    key,
+                    JSON.stringify(aiMessages.slice(-50))
+                );
+                // Lưu timestamp cho guest để tính TTL
+                if (!userId && tsKey && !localStorage.getItem(tsKey)) {
+                    localStorage.setItem(tsKey, String(Date.now()));
+                }
             } catch {
                 // quota exceeded — ignore
             }
@@ -336,57 +378,108 @@ export const SupportChatProvider = ({ children }) => {
     }, [aiMessages, user?._id]);
 
     // Send AI message
-    const sendAIMessage = useCallback(async (text) => {
-        const trimmed = text?.trim();
-        if (!trimmed || aiLoading || aiCooldown > 0) return;
+    const sendAIMessage = useCallback(
+        async (text) => {
+            const trimmed = text?.trim();
+            if (!trimmed || aiLoading || aiCooldown > 0) return;
 
-        const userMsg = { role: 'user', text: trimmed };
-        setAiMessages((prev) => [...prev, userMsg]);
-        setAiLoading(true);
+            const userId = user?._id || null;
 
-        try {
-            // history = all messages after greeting, before the one we just added
-            const history = [];
-            setAiMessages((prev) => {
-                const msgs = prev.slice(1, -1); // exclude greeting + last user msg
-                msgs.forEach((m) => history.push({ role: m.role, text: m.text }));
-                return prev; // no change
-            });
+            // ── Check Guest Limit ──────────────────
+            if (!userId) {
+                const countKey = getAiGuestLimitKey();
+                const resetKey = getAiGuestLastResetKey();
+                const now = new Date().toDateString();
+                const lastReset = localStorage.getItem(resetKey);
 
-            const response = await Axios({
-                ...SummaryApi.chat_message,
-                data: { message: trimmed, history },
-            });
+                let count = parseInt(localStorage.getItem(countKey) || '0');
 
-            if (response.data?.success) {
+                // Reset nếu sang ngày mới
+                if (lastReset !== now) {
+                    count = 0;
+                    localStorage.setItem(resetKey, now);
+                }
+
+                if (count >= GUEST_AI_LIMIT) {
+                    const limitMsg = {
+                        role: 'bot',
+                        text: `⚠️ **Bạn đã hết lượt hỏi AI trong ngày hôm nay (giới hạn 10 câu).**\n\nĐăng nhập ngay để:\n• Tiếp tục trò chuyện không giới hạn 🚀\n• Lưu lịch sử hội thoại 📝\n• Tích điểm thưởng & nhận ưu đãi 🎁\n\nHoặc bạn có thể chọn **"Chat với nhân viên"** bên dưới để được hỗ trợ trực tiếp từ đội ngũ EatEase! 😊`,
+                        isLimitReached: true, // Flag để UI có thể render nút login/staff chat
+                    };
+                    setAiMessages((prev) => [
+                        ...prev,
+                        { role: 'user', text: trimmed },
+                        limitMsg,
+                    ]);
+                    return;
+                }
+
+                // Tăng count
+                localStorage.setItem(countKey, (count + 1).toString());
+            }
+
+            const userMsg = { role: 'user', text: trimmed };
+            setAiMessages((prev) => [...prev, userMsg]);
+            setAiLoading(true);
+
+            try {
+                // history = all messages after greeting, before the one we just added
+                const history = [];
+                setAiMessages((prev) => {
+                    const msgs = prev.slice(1, -1); // exclude greeting + last user msg
+                    msgs.forEach((m) =>
+                        history.push({ role: m.role, text: m.text })
+                    );
+                    return prev; // no change
+                });
+
+                const response = await Axios({
+                    ...SummaryApi.chat_message,
+                    data: { message: trimmed, history },
+                });
+
+                if (response.data?.success) {
+                    setAiMessages((prev) => [
+                        ...prev,
+                        { role: 'bot', text: response.data.data.reply },
+                    ]);
+                }
+            } catch (error) {
                 setAiMessages((prev) => [
                     ...prev,
-                    { role: 'bot', text: response.data.data.reply },
+                    {
+                        role: 'bot',
+                        text:
+                            error?.response?.data?.message ||
+                            'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau ít phút! 🙏',
+                    },
                 ]);
+            } finally {
+                setAiLoading(false);
+                // 5-second cooldown
+                setAiCooldown(5);
+                clearInterval(aiCooldownRef.current);
+                aiCooldownRef.current = setInterval(() => {
+                    setAiCooldown((prev) => {
+                        if (prev <= 1) {
+                            clearInterval(aiCooldownRef.current);
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
             }
-        } catch (error) {
-            setAiMessages((prev) => [
-                ...prev,
-                { role: 'bot', text: error?.response?.data?.message || 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau ít phút! 🙏' },
-            ]);
-        } finally {
-            setAiLoading(false);
-            // 5-second cooldown
-            setAiCooldown(5);
-            clearInterval(aiCooldownRef.current);
-            aiCooldownRef.current = setInterval(() => {
-                setAiCooldown((prev) => {
-                    if (prev <= 1) { clearInterval(aiCooldownRef.current); return 0; }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
-    }, [aiLoading, aiCooldown]);
+        },
+        [aiLoading, aiCooldown]
+    );
 
     // Clear AI chat history
     const clearAiMessages = useCallback(() => {
-        const key = getAiStorageKey(user?._id || null);
+        const userId = user?._id || null;
+        const key = getAiStorageKey(userId);
+        const tsKey = getAiTimestampKey(userId);
         localStorage.removeItem(key);
+        if (tsKey) localStorage.removeItem(tsKey);
         setAiMessages([{ role: 'bot', text: AI_GREETING }]);
     }, [user?._id]);
 
@@ -422,7 +515,9 @@ export const SupportChatProvider = ({ children }) => {
         // ── Logged-in user: kiểm tra conversation cũ trên server trước ───────────────
         if (isLoggedIn) {
             try {
-                const res = await Axios({ ...SummaryApi.get_my_support_conversation });
+                const res = await Axios({
+                    ...SummaryApi.get_my_support_conversation,
+                });
                 const existing = res.data?.data;
 
                 if (existing?.conversationId) {
@@ -431,12 +526,18 @@ export const SupportChatProvider = ({ children }) => {
                     setChatDaysLeft(existing.daysLeft);
                     conversationIdRef.current = existing.conversationId;
                     // Lưu lại vào localStorage cho lần sau
-                    localStorage.setItem(getStorageKey(userId), existing.conversationId);
+                    localStorage.setItem(
+                        getStorageKey(userId),
+                        existing.conversationId
+                    );
                     connectAndJoin(name, userId);
                     return;
                 }
             } catch (err) {
-                console.warn('[SupportChat] Could not check existing conversation:', err.message);
+                console.warn(
+                    '[SupportChat] Could not check existing conversation:',
+                    err.message
+                );
                 // Nếu API lỗi, thử với localStorage fallback bình thường
             }
 
@@ -558,8 +659,8 @@ export const SupportChatProvider = ({ children }) => {
         nameEntered,
         guestName,
         conversationId: conversationIdRef.current,
-        chatExpiresAt,   // Date object - khi nào hết hạn
-        chatDaysLeft,     // number - còn bao nhiêu ngày
+        chatExpiresAt, // Date object - khi nào hết hạn
+        chatDaysLeft, // number - còn bao nhiêu ngày
 
         // Support chat actions
         initializeConnection,

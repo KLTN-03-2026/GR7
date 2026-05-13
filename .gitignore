@@ -28,9 +28,9 @@ client/node_modules
 server/node_modules
 client/.vite_cache
 .env
-.client/.env
-.server/.env
-.server/tests
+client/.env
+server/.env
+**/.env
 chat-history.md
 AGENT_RULES.md
 .kiro/

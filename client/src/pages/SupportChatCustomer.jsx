@@ -195,12 +195,12 @@ export default function SupportChatCustomer() {
         setInput('');
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
+    // const handleKeyDown = (e) => {
+    //     if (e.key === 'Enter' && !e.shiftKey) {
+    //         e.preventDefault();
+    //         handleSend();
+    //     }
+    // };
 
     const handleClose = async () => {
         if (!selectedId) return;
@@ -548,18 +548,39 @@ export default function SupportChatCustomer() {
                                 <div className="flex items-end gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-green-400 focus-within:bg-white transition-all">
                                     <textarea
                                         value={input}
-                                        onChange={(e) =>
-                                            setInput(e.target.value)
-                                        }
-                                        onKeyDown={handleKeyDown}
+                                        onChange={(e) => {
+                                            setInput(e.target.value);
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (
+                                                e.key === 'Enter' &&
+                                                !e.shiftKey
+                                            ) {
+                                                e.preventDefault();
+                                                handleSend();
+                                                e.target.style.height = 'auto';
+                                            }
+                                        }}
                                         placeholder="Nhập tin nhắn trả lời..."
                                         rows={1}
-                                        className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed max-h-24 overflow-y-auto placeholder:text-gray-400 text-gray-700"
+                                        className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed overflow-y-auto placeholder:text-gray-400 text-gray-700 py-0.5"
+                                        style={{ minHeight: '24px' }}
                                     />
                                     <button
-                                        onClick={handleSend}
+                                        onClick={() => {
+                                            handleSend();
+                                            // Reset height is handled by Enter key too, but for button click:
+                                            const textarea =
+                                                document.querySelector(
+                                                    'textarea'
+                                                );
+                                            if (textarea)
+                                                textarea.style.height = 'auto';
+                                        }}
                                         disabled={!input.trim()}
-                                        className="shrink-0 w-8 h-8 rounded-lg bg-green-500 text-white flex items-center justify-center hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                                        className="shrink-0 w-8 h-8 rounded-lg bg-green-500 text-white flex items-center justify-center hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm mb-0.5"
                                     >
                                         <svg
                                             className="w-4 h-4"
