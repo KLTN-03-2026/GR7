@@ -21,16 +21,37 @@ import ShinyText from '../components/animations/ShinyText';
 
 // Map kitchenStatus → label + màu hiển thị cho khách (theme-aware)
 const KITCHEN_STATUS_CONFIG = {
-    pending:  { label: 'Chờ bếp',       className: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700' },
-    cooking:  { label: 'Đang nấu',      className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700' },
-    ready:    { label: 'Sắp phục vụ',   className: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-300 dark:border-purple-700' },
-    served:   { label: 'Đã phục vụ',   className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700' },
+    pending: {
+        label: 'Chờ bếp',
+        className:
+            'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700',
+    },
+    cooking: {
+        label: 'Đang nấu',
+        className:
+            'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700',
+    },
+    ready: {
+        label: 'Sắp phục vụ',
+        className:
+            'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-300 dark:border-purple-700',
+    },
+    served: {
+        label: 'Đã phục vụ',
+        className:
+            'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700',
+    },
 };
 
 // ─────────────────────────────────────────
 // Bill Preview Modal (AC 3–5)
 // ─────────────────────────────────────────
-function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) {
+function OnlineBillPreviewModal({
+    tableOrder,
+    onClose,
+    onConfirm,
+    processing,
+}) {
     if (!tableOrder) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -46,9 +67,12 @@ function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) 
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 px-5 py-5 md:py-4 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl md:text-xl font-bold text-white flex items-center gap-2 font-[Bahnschrift,_system-ui]">
-                            <FiFileText size={24} className="md:text-[20px]" /> Xác nhận Thanh toán Online
+                            <FiFileText size={24} className="md:text-[20px]" />{' '}
+                            Xác nhận Thanh toán Online
                         </h2>
-                        <p className="text-blue-100 text-base md:text-sm mt-0.5">Bàn {tableOrder.tableNumber}</p>
+                        <p className="text-blue-100 text-base md:text-sm mt-0.5">
+                            Bàn {tableOrder.tableNumber}
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
@@ -66,13 +90,19 @@ function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) 
                             className="flex justify-between items-center border-b border-border pb-2 last:border-b-0"
                         >
                             <div>
-                                <p className="font-semibold text-foreground text-base md:text-sm">{item.name}</p>
+                                <p className="font-semibold text-foreground text-base md:text-sm">
+                                    {item.name}
+                                </p>
                                 <p className="text-sm text-muted-foreground">
-                                    x{item.quantity} × {item.price.toLocaleString('vi-VN')}đ
+                                    x{item.quantity} ×{' '}
+                                    {item.price.toLocaleString('vi-VN')}đ
                                 </p>
                             </div>
                             <p className="font-bold text-foreground">
-                                {(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                                {(item.price * item.quantity).toLocaleString(
+                                    'vi-VN'
+                                )}
+                                đ
                             </p>
                         </div>
                     ))}
@@ -87,7 +117,9 @@ function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) 
                             border: '1px solid rgba(59, 130, 246, 0.3)',
                         }}
                     >
-                        <span className="text-lg font-bold text-foreground">Tổng cộng:</span>
+                        <span className="text-lg font-bold text-foreground">
+                            Tổng cộng:
+                        </span>
                         <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             {(tableOrder.total || 0).toLocaleString('vi-VN')}đ
                         </span>
@@ -103,7 +135,8 @@ function OnlineBillPreviewModal({ tableOrder, onClose, onConfirm, processing }) 
                             color: 'var(--foreground)',
                         }}
                     >
-                        ⚠️ Sau khi xác nhận, bạn sẽ được chuyển đến trang thanh toán Stripe an toàn.
+                        ⚠️ Sau khi xác nhận, bạn sẽ được chuyển đến trang thanh
+                        toán Stripe an toàn.
                     </p>
                 </div>
 
@@ -176,7 +209,9 @@ const TableOrderManagementPage = () => {
             return;
         }
         if (!allServed) {
-            toast.error('Vui lòng chờ tất cả các món được phục vụ trước khi thanh toán.');
+            toast.error(
+                'Vui lòng chờ tất cả các món được phục vụ trước khi thanh toán.'
+            );
             return;
         }
 
@@ -193,7 +228,10 @@ const TableOrderManagementPage = () => {
             }
         } catch (error) {
             console.error('Error checkout:', error);
-            toast.error(error.response?.data?.message || 'Không thể tạo phiên thanh toán');
+            toast.error(
+                error.response?.data?.message ||
+                    'Không thể tạo phiên thanh toán'
+            );
             setShowBillPreview(false);
         } finally {
             setProcessing(false);
@@ -206,7 +244,9 @@ const TableOrderManagementPage = () => {
             return;
         }
         if (!allServed) {
-            toast.error('Vui lòng chờ tất cả các món được phục vụ trước khi thanh toán.');
+            toast.error(
+                'Vui lòng chờ tất cả các món được phục vụ trước khi thanh toán.'
+            );
             return;
         }
 
@@ -226,7 +266,9 @@ const TableOrderManagementPage = () => {
             }
         } catch (error) {
             console.error('Error checkout:', error);
-            toast.error(error.response?.data?.message || 'Không thể thanh toán');
+            toast.error(
+                error.response?.data?.message || 'Không thể thanh toán'
+            );
         } finally {
             setProcessing(false);
         }
@@ -264,7 +306,9 @@ const TableOrderManagementPage = () => {
                 data: { type: 'cancel_item', note: waiterNote.trim() },
             });
             if (response.data.success) {
-                toast.success('🔔 Đã gửi! Nhân viên sẽ đến ngay.', { duration: 5000 });
+                toast.success('🔔 Đã gửi! Nhân viên sẽ đến ngay.', {
+                    duration: 5000,
+                });
                 setWaiterNote('');
                 setShowWaiterInput(false);
                 // Cooldown 30 giây để tránh spam
@@ -272,7 +316,9 @@ const TableOrderManagementPage = () => {
                 setTimeout(() => setCallCooldown(false), 30000);
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Không thể gửi yêu cầu');
+            toast.error(
+                error.response?.data?.message || 'Không thể gửi yêu cầu'
+            );
         } finally {
             setCallingWaiter(false);
         }
@@ -305,11 +351,14 @@ const TableOrderManagementPage = () => {
                 <div
                     className="text-white p-5 md:p-4"
                     style={{
-                        background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                        background:
+                            'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                     }}
                 >
                     <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <h1 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">Đơn hàng</h1>
+                        <h1 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
+                            Đơn hàng
+                        </h1>
                         <button
                             onClick={handleLogout}
                             className="bg-white dark:bg-gray-800 p-3 md:p-2 rounded-full active:scale-95 transition-all"
@@ -327,7 +376,8 @@ const TableOrderManagementPage = () => {
                         onClick={() => navigate('/table-menu')}
                         className="px-6 py-4 md:py-3 rounded-lg font-semibold text-white active:scale-95 transition-all"
                         style={{
-                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                            background:
+                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                             boxShadow: '0 4px 12px rgba(201, 96, 72, 0.3)',
                         }}
                     >
@@ -370,7 +420,8 @@ const TableOrderManagementPage = () => {
             <div
                 className="text-white p-5 md:p-4 sticky top-0 z-40 shadow-lg"
                 style={{
-                    background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                    background:
+                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                 }}
             >
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -378,7 +429,9 @@ const TableOrderManagementPage = () => {
                         <h1 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
                             Bàn {tableOrder.tableNumber}
                         </h1>
-                        <p className="text-base md:text-sm opacity-90">Quản lý đơn hàng</p>
+                        <p className="text-base md:text-sm opacity-90">
+                            Quản lý đơn hàng
+                        </p>
                     </div>
                     <button
                         onClick={handleLogout}
@@ -425,7 +478,8 @@ const TableOrderManagementPage = () => {
                                     <div
                                         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-lg"
                                         style={{
-                                            background: 'radial-gradient(circle at center, rgba(201, 96, 72, 0.05) 0%, transparent 70%)',
+                                            background:
+                                                'radial-gradient(circle at center, rgba(201, 96, 72, 0.05) 0%, transparent 70%)',
                                         }}
                                     />
                                     <div className="flex-1 relative z-10">
@@ -435,15 +489,19 @@ const TableOrderManagementPage = () => {
                                         <p className="text-sm text-muted-foreground">
                                             Gọi lúc: {formatTime(item.addedAt)}
                                         </p>
-                                        <p className="font-bold mt-1" style={{ color: '#C96048' }}>
-                                            {item.price.toLocaleString('vi-VN')}đ x{' '}
-                                            {item.quantity}
+                                        <p
+                                            className="font-bold mt-1"
+                                            style={{ color: '#C96048' }}
+                                        >
+                                            {item.price.toLocaleString('vi-VN')}
+                                            đ x {item.quantity}
                                         </p>
                                         {/* Kitchen status badge */}
                                         <span
                                             className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.className}`}
                                         >
-                                            {item.kitchenStatus !== 'served' && (
+                                            {item.kitchenStatus !==
+                                                'served' && (
                                                 <FiClock size={10} />
                                             )}
                                             {statusCfg.label}
@@ -491,11 +549,15 @@ const TableOrderManagementPage = () => {
                 >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="font-semibold text-foreground">Cần hỗ trợ?</p>
-                            <p className="text-sm text-muted-foreground mt-0.5">Gọi nhân viên đến bàn</p>
+                            <p className="font-semibold text-foreground">
+                                Cần hỗ trợ?
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                                Gọi nhân viên đến bàn
+                            </p>
                         </div>
                         <button
-                            onClick={() => setShowWaiterInput(p => !p)}
+                            onClick={() => setShowWaiterInput((p) => !p)}
                             disabled={callCooldown}
                             className={`flex items-center gap-2 px-4 py-3 md:py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
                                 callCooldown
@@ -505,8 +567,9 @@ const TableOrderManagementPage = () => {
                             style={
                                 !callCooldown
                                     ? {
-                                        background: 'linear-gradient(135deg, rgba(201, 96, 72, 0.8) 0%, rgba(217, 122, 102, 0.8) 100%)',
-                                    }
+                                          background:
+                                              'linear-gradient(135deg, rgba(201, 96, 72, 0.8) 0%, rgba(217, 122, 102, 0.8) 100%)',
+                                      }
                                     : {}
                             }
                         >
@@ -529,12 +592,16 @@ const TableOrderManagementPage = () => {
                                 disabled={callingWaiter}
                                 className="w-full text-white py-3 md:py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 active:scale-95"
                                 style={{
-                                    background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                    boxShadow: '0 4px 12px rgba(201, 96, 72, 0.3)',
+                                    background:
+                                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                    boxShadow:
+                                        '0 4px 12px rgba(201, 96, 72, 0.3)',
                                 }}
                             >
                                 <FiBell size={16} />
-                                {callingWaiter ? 'Đang gửi...' : 'Xác nhận gọi phục vụ'}
+                                {callingWaiter
+                                    ? 'Đang gửi...'
+                                    : 'Xác nhận gọi phục vụ'}
                             </button>
                         </div>
                     )}
@@ -550,11 +617,18 @@ const TableOrderManagementPage = () => {
                             border: '1px solid rgba(234, 179, 8, 0.3)',
                         }}
                     >
-                        <FiClock className="text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" size={20} />
+                        <FiClock
+                            className="text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0"
+                            size={20}
+                        />
                         <div>
-                            <p className="font-semibold text-yellow-800 dark:text-yellow-400">Chưa thể thanh toán</p>
+                            <p className="font-semibold text-yellow-800 dark:text-yellow-400">
+                                Chưa thể thanh toán
+                            </p>
                             <p className="text-sm text-yellow-700 dark:text-yellow-500 mt-0.5">
-                                Còn <strong>{pendingCount}</strong> món chưa được phục vụ. Vui lòng chờ nhân viên mang món ra bàn trước khi thanh toán.
+                                Còn <strong>{pendingCount}</strong> món chưa
+                                được phục vụ. Vui lòng chờ nhân viên mang món ra
+                                bàn trước khi thanh toán.
                             </p>
                         </div>
                     </div>
@@ -574,7 +648,9 @@ const TableOrderManagementPage = () => {
                         <button
                             onClick={() => {
                                 if (!allServed) {
-                                    toast.error('Vui lòng chờ tất cả các món được phục vụ.');
+                                    toast.error(
+                                        'Vui lòng chờ tất cả các món được phục vụ.'
+                                    );
                                     return;
                                 }
                                 setShowBillPreview(true);
@@ -582,8 +658,13 @@ const TableOrderManagementPage = () => {
                             disabled={processing || !allServed}
                             className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 text-white py-5 md:py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
                         >
-                            <FiCreditCard size={26} className="md:text-[24px]" />
-                            {processing ? 'Đang xử lý...' : 'Thanh toán online (Stripe)'}
+                            <FiCreditCard
+                                size={26}
+                                className="md:text-[24px]"
+                            />
+                            {processing
+                                ? 'Đang xử lý...'
+                                : 'Thanh toán online (Stripe)'}
                         </button>
                     </BorderGlow>
 
@@ -601,8 +682,13 @@ const TableOrderManagementPage = () => {
                             disabled={processing || !allServed}
                             className="w-full bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 text-white py-5 md:py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
                         >
-                            <FiDollarSign size={26} className="md:text-[24px]" />
-                            {processing ? 'Đang xử lý...' : 'Thanh toán tại quầy'}
+                            <FiDollarSign
+                                size={26}
+                                className="md:text-[24px]"
+                            />
+                            {processing
+                                ? 'Đang xử lý...'
+                                : 'Thanh toán tại quầy'}
                         </button>
                     </BorderGlow>
 
@@ -610,7 +696,8 @@ const TableOrderManagementPage = () => {
                         onClick={() => navigate('/table-menu')}
                         className="w-full text-white py-5 md:py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
                         style={{
-                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                            background:
+                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                         }}
                     >
                         <FiShoppingBag size={26} className="md:text-[24px]" />

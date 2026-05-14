@@ -172,7 +172,7 @@ export async function loginViaQRController(request, response) {
         // Check if table already has an active ordering session (AC 5.1 / 5.2)
         const activeOrder = await TableOrderModel.findOne({
             tableId: table._id,
-            status: 'active'
+            status: { $in: ['active', 'pending_payment'] }
         });
         const hasActiveSession = !!activeOrder;
         const activeOrderItemCount = activeOrder ? activeOrder.items.length : 0;

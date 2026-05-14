@@ -203,8 +203,13 @@ const TableMenuPage = () => {
             );
             if (existing) {
                 // AC 7.3 – also check when "+" card button is clicked
-                if (product.stock > 0 && existing.quantity + 1 > product.stock) {
-                    toast.error(`Chỉ còn ${product.stock} suất "${product.name}".`);
+                if (
+                    product.stock > 0 &&
+                    existing.quantity + 1 > product.stock
+                ) {
+                    toast.error(
+                        `Chỉ còn ${product.stock} suất "${product.name}".`
+                    );
                     return prev;
                 }
                 return prev.map((item) =>
@@ -282,7 +287,10 @@ const TableMenuPage = () => {
             })
         );
         // Sync display value
-        setInputValues((prev) => { const { [productId]: _, ...rest } = prev; return rest; });
+        setInputValues((prev) => {
+            const { [productId]: _, ...rest } = prev;
+            return rest;
+        });
     };
 
     const handleRemoveLocalItem = (productId) => {
@@ -342,29 +350,43 @@ const TableMenuPage = () => {
         const amount = order.subTotal || order.total || 0;
         try {
             const [availRes, bestRes] = await Promise.allSettled([
-                Axios({ ...SummaryApi.get_available_vouchers, data: { orderAmount: amount } }),
-                Axios({ ...SummaryApi.get_best_voucher, data: { orderAmount: amount } }),
+                Axios({
+                    ...SummaryApi.get_available_vouchers,
+                    data: { orderAmount: amount },
+                }),
+                Axios({
+                    ...SummaryApi.get_best_voucher,
+                    data: { orderAmount: amount },
+                }),
             ]);
 
-            if (availRes.status === 'fulfilled' && availRes.value.data?.success) {
+            if (
+                availRes.status === 'fulfilled' &&
+                availRes.value.data?.success
+            ) {
                 setAvailableVouchers(availRes.value.data.data || []);
             }
 
             if (bestRes.status === 'fulfilled' && bestRes.value.data?.success) {
                 // API returns: { data: { bestCombination: { regular: <voucher>, totalSavings }, alternatives } }
-                const raw = bestRes.value.data.data?.bestCombination?.regular || null;
+                const raw =
+                    bestRes.value.data.data?.bestCombination?.regular || null;
                 if (raw) {
-                    const isFreeShipping = raw.discountType === 'free_shipping' || raw.isFreeShipping;
+                    const isFreeShipping =
+                        raw.discountType === 'free_shipping' ||
+                        raw.isFreeShipping;
                     setBestVoucher({
                         code: raw.code,
                         name: raw.name,
                         minOrder: raw.minOrderValue || 0,
-                        expiryDate: raw.endDate ? new Date(raw.endDate).toLocaleDateString('vi-VN') : null,
+                        expiryDate: raw.endDate
+                            ? new Date(raw.endDate).toLocaleDateString('vi-VN')
+                            : null,
                         discountText: isFreeShipping
                             ? 'Miễn phí vận chuyển'
                             : raw.discountType === 'percentage'
-                                ? `Giảm ${raw.discountValue}%${raw.maxDiscount ? ` (tối đa ${raw.maxDiscount.toLocaleString('vi-VN')}đ)` : ''}`
-                                : `Giảm ${(raw.discountValue || 0).toLocaleString('vi-VN')}đ`,
+                              ? `Giảm ${raw.discountValue}%${raw.maxDiscount ? ` (tối đa ${raw.maxDiscount.toLocaleString('vi-VN')}đ)` : ''}`
+                              : `Giảm ${(raw.discountValue || 0).toLocaleString('vi-VN')}đ`,
                         calculatedDiscount: raw.calculatedDiscount || 0,
                     });
                 } else {
@@ -376,42 +398,73 @@ const TableMenuPage = () => {
         }
     }, []);
 
-
-    // PB29 – Apply voucher (client-side only, no DB persist for customer)
+    // PB29 – Apply voucher (Persist to DB for table orders)
     const handleApplyVoucher = async (code) => {
         const applyCode = (code || voucherCode).trim().toUpperCase();
         if (!applyCode || !currentOrder) return;
         setVoucherLoading(true);
         setVoucherError('');
         try {
+            // Sử dụng API lưu voucher trực tiếp vào đơn hàng (Persist)
             const res = await Axios({
-                ...SummaryApi.apply_voucher,
+                url: SummaryApi.apply_voucher_to_table_order.url.replace(
+                    ':id',
+                    currentOrder._id
+                ),
+                method: SummaryApi.apply_voucher_to_table_order.method,
                 data: {
-                    code: applyCode,
-                    orderAmount: currentOrder.subTotal || currentOrder.total || 0,
+                    voucherCode: applyCode,
                 },
             });
+
             if (res.data?.success) {
-                const d = res.data.data;
-                const discountAmt = d.calculatedDiscount || 0;
-                setAppliedVoucher({ code: d.code, name: d.name, discountAmount: discountAmt, voucherData: d });
-                toast.success(`Áp dụng "${d.code}" thành công! Giảm ${discountAmt.toLocaleString('vi-VN')}đ`);
+                // Sau khi áp dụng thành công vào DB, fetch lại đơn hàng để cập nhật UI
+                const updatedOrder = await fetchCurrentOrder();
+                if (updatedOrder) {
+                    const discountAmt = updatedOrder.discount || 0;
+                    setAppliedVoucher({
+                        code: applyCode,
+                        name: updatedOrder.voucherId?.name || applyCode,
+                        discountAmount: discountAmt,
+                    });
+                    toast.success(`Áp dụng mã "${applyCode}" thành công!`);
+                }
             } else {
-                setVoucherError(res.data?.message || 'Không áp dụng được mã này.');
+                setVoucherError(
+                    res.data?.message || 'Không áp dụng được mã này.'
+                );
             }
         } catch (err) {
-            setVoucherError(err?.response?.data?.message || 'Lỗi khi áp dụng mã giảm giá.');
+            setVoucherError(
+                err?.response?.data?.message || 'Lỗi khi áp dụng mã giảm giá.'
+            );
         } finally {
             setVoucherLoading(false);
         }
     };
 
-    // PB29 – Remove voucher
-    const handleRemoveVoucher = () => {
-        setAppliedVoucher(null);
-        setVoucherCode('');
-        setVoucherError('');
-        setShowAllVouchers(false);
+    // PB29 – Remove voucher (Persist to DB)
+    const handleRemoveVoucher = async () => {
+        if (!currentOrder) return;
+        try {
+            const res = await Axios({
+                url: SummaryApi.remove_voucher_from_table_order.url.replace(
+                    ':id',
+                    currentOrder._id
+                ),
+                method: SummaryApi.remove_voucher_from_table_order.method,
+            });
+            if (res.data?.success) {
+                await fetchCurrentOrder();
+                setAppliedVoucher(null);
+                setVoucherCode('');
+                setVoucherError('');
+                setShowAllVouchers(false);
+                toast.success('Đã hủy mã giảm giá');
+            }
+        } catch (err) {
+            toast.error('Không thể hủy mã giảm giá');
+        }
     };
 
     const handleLogout = async () => {
@@ -424,7 +477,6 @@ const TableMenuPage = () => {
             console.error('Error logging out:', error);
         }
     };
-
 
     const totalAmount = localOrder.reduce(
         (sum, item) => sum + item.price * item.quantity,
@@ -450,7 +502,8 @@ const TableMenuPage = () => {
             <div
                 className="text-white p-5 md:p-4 sticky top-0 z-40 shadow-lg"
                 style={{
-                    background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                    background:
+                        'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                 }}
             >
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -488,7 +541,10 @@ const TableMenuPage = () => {
                             style={{ color: '#C96048' }}
                             title="Món đang chọn"
                         >
-                            <FiShoppingCart size={24} className="md:text-[22px]" />
+                            <FiShoppingCart
+                                size={24}
+                                className="md:text-[22px]"
+                            />
                             {localOrder.length > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-6 h-6 md:w-5 md:h-5 flex items-center justify-center font-bold">
                                     {localOrder.length}
@@ -516,23 +572,30 @@ const TableMenuPage = () => {
                             onClick={() => setShowCategoryMenu(true)}
                             className="group relative w-full flex items-center justify-between px-5 py-3 rounded-xl font-semibold text-white shadow-md transition-all duration-300 hover:shadow-lg active:scale-95 overflow-hidden"
                             style={{
-                                background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                background:
+                                    'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                             }}
                         >
                             {/* Subtle shine effect */}
                             <div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                                 style={{
-                                    background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
+                                    background:
+                                        'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
                                 }}
                             />
                             <div className="relative z-10 flex items-center gap-2">
                                 <FiGrid size={20} />
                                 <span>
-                                    {categories.find((c) => c._id === selectedCategory)?.name || 'Chọn danh mục'}
+                                    {categories.find(
+                                        (c) => c._id === selectedCategory
+                                    )?.name || 'Chọn danh mục'}
                                 </span>
                             </div>
-                            <FiChevronDown size={20} className="relative z-10" />
+                            <FiChevronDown
+                                size={20}
+                                className="relative z-10"
+                            />
                         </button>
                     </div>
 
@@ -552,15 +615,18 @@ const TableMenuPage = () => {
                                     }`}
                                     style={
                                         selectedCategory === category._id
-                                            ? { 
-                                                background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                                boxShadow: '0 4px 12px rgba(201, 96, 72, 0.3)',
-                                            }
+                                            ? {
+                                                  background:
+                                                      'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                                  boxShadow:
+                                                      '0 4px 12px rgba(201, 96, 72, 0.3)',
+                                              }
                                             : {
-                                                background: 'rgba(var(--card-rgb, 255, 255, 255), 0.6)',
-                                                backdropFilter: 'blur(8px)',
-                                                border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
-                                            }
+                                                  background:
+                                                      'rgba(var(--card-rgb, 255, 255, 255), 0.6)',
+                                                  backdropFilter: 'blur(8px)',
+                                                  border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
+                                              }
                                     }
                                 >
                                     {/* Hover glow for non-selected */}
@@ -568,11 +634,14 @@ const TableMenuPage = () => {
                                         <div
                                             className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                                             style={{
-                                                background: 'radial-gradient(circle at center, rgba(201, 96, 72, 0.1) 0%, transparent 70%)',
+                                                background:
+                                                    'radial-gradient(circle at center, rgba(201, 96, 72, 0.1) 0%, transparent 70%)',
                                             }}
                                         />
                                     )}
-                                    <span className="relative z-10">{category.name}</span>
+                                    <span className="relative z-10">
+                                        {category.name}
+                                    </span>
                                 </button>
                             ))}
                         </div>
@@ -589,7 +658,8 @@ const TableMenuPage = () => {
                     <div
                         className="w-full rounded-t-3xl shadow-2xl max-h-[70vh] flex flex-col animate-slide-up overflow-hidden"
                         style={{
-                            background: 'rgba(var(--card-rgb, 255, 255, 255), 0.95)',
+                            background:
+                                'rgba(var(--card-rgb, 255, 255, 255), 0.95)',
                             backdropFilter: 'blur(20px)',
                             border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
                             borderBottom: 'none',
@@ -625,15 +695,19 @@ const TableMenuPage = () => {
                                         }`}
                                         style={
                                             selectedCategory === category._id
-                                                ? { 
-                                                    background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                                    boxShadow: '0 8px 20px rgba(201, 96, 72, 0.3)',
-                                                }
+                                                ? {
+                                                      background:
+                                                          'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                                      boxShadow:
+                                                          '0 8px 20px rgba(201, 96, 72, 0.3)',
+                                                  }
                                                 : {
-                                                    background: 'rgba(var(--card-rgb, 255, 255, 255), 0.5)',
-                                                    backdropFilter: 'blur(8px)',
-                                                    border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
-                                                }
+                                                      background:
+                                                          'rgba(var(--card-rgb, 255, 255, 255), 0.5)',
+                                                      backdropFilter:
+                                                          'blur(8px)',
+                                                      border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
+                                                  }
                                         }
                                     >
                                         {/* Hover glow for non-selected */}
@@ -641,11 +715,14 @@ const TableMenuPage = () => {
                                             <div
                                                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                                                 style={{
-                                                    background: 'radial-gradient(circle at center, rgba(201, 96, 72, 0.1) 0%, transparent 70%)',
+                                                    background:
+                                                        'radial-gradient(circle at center, rgba(201, 96, 72, 0.1) 0%, transparent 70%)',
                                                 }}
                                             />
                                         )}
-                                        <span className="relative z-10">{category.name}</span>
+                                        <span className="relative z-10">
+                                            {category.name}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
@@ -659,7 +736,9 @@ const TableMenuPage = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {products.map((product) => {
                         // Product is unavailable if status says so OR stock is exactly 0
-                        const isAvailable = product.status === 'available' && product.stock !== 0;
+                        const isAvailable =
+                            product.status === 'available' &&
+                            product.stock !== 0;
                         return (
                             <div
                                 key={product._id}
@@ -669,7 +748,8 @@ const TableMenuPage = () => {
                                         : 'opacity-70'
                                 }`}
                                 style={{
-                                    background: 'rgba(var(--card-rgb, 255, 255, 255), 0.7)',
+                                    background:
+                                        'rgba(var(--card-rgb, 255, 255, 255), 0.7)',
                                     backdropFilter: 'blur(12px)',
                                     border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
                                 }}
@@ -679,7 +759,8 @@ const TableMenuPage = () => {
                                     <div
                                         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10"
                                         style={{
-                                            background: 'radial-gradient(circle at 50% 0%, rgba(201, 96, 72, 0.15) 0%, transparent 60%)',
+                                            background:
+                                                'radial-gradient(circle at 50% 0%, rgba(201, 96, 72, 0.15) 0%, transparent 60%)',
                                         }}
                                     />
                                 )}
@@ -705,7 +786,10 @@ const TableMenuPage = () => {
                                     <h3 className="font-semibold text-foreground text-base md:text-sm mb-1 line-clamp-2">
                                         {product.name}
                                     </h3>
-                                    <p className="font-bold text-xl md:text-lg mb-3 md:mb-2" style={{ color: '#C96048' }}>
+                                    <p
+                                        className="font-bold text-xl md:text-lg mb-3 md:mb-2"
+                                        style={{ color: '#C96048' }}
+                                    >
                                         {product.price?.toLocaleString('vi-VN')}
                                         đ
                                     </p>
@@ -721,13 +805,16 @@ const TableMenuPage = () => {
                                         }`}
                                         style={
                                             isAvailable
-                                                ? { 
-                                                    background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
-                                                    boxShadow: '0 4px 12px rgba(201, 96, 72, 0.3)',
-                                                }
+                                                ? {
+                                                      background:
+                                                          'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                                      boxShadow:
+                                                          '0 4px 12px rgba(201, 96, 72, 0.3)',
+                                                  }
                                                 : {
-                                                    background: 'rgba(var(--border-rgb, 200, 200, 200), 0.3)',
-                                                }
+                                                      background:
+                                                          'rgba(var(--border-rgb, 200, 200, 200), 0.3)',
+                                                  }
                                         }
                                     >
                                         {isAvailable ? '+ Thêm' : 'Hết hàng'}
@@ -755,7 +842,8 @@ const TableMenuPage = () => {
                         <div
                             className="text-white p-5 md:p-4 flex justify-between items-center"
                             style={{
-                                background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                background:
+                                    'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                             }}
                         >
                             <h2 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
@@ -789,17 +877,20 @@ const TableMenuPage = () => {
                                             key={item.productId}
                                             className="group relative flex gap-3 p-4 md:p-3 rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                                             style={{
-                                                background: 'rgba(var(--card-rgb, 255, 255, 255), 0.05)',
+                                                background:
+                                                    'rgba(var(--card-rgb, 255, 255, 255), 0.05)',
                                                 backdropFilter: 'blur(12px)',
                                                 border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.2)',
-                                                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                                                boxShadow:
+                                                    '0 4px 16px rgba(0, 0, 0, 0.08)',
                                             }}
                                         >
                                             {/* Hover glow effect */}
                                             <div
                                                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                                                 style={{
-                                                    background: 'radial-gradient(circle at center, rgba(201, 96, 72, 0.1) 0%, transparent 70%)',
+                                                    background:
+                                                        'radial-gradient(circle at center, rgba(201, 96, 72, 0.1) 0%, transparent 70%)',
                                                 }}
                                             />
 
@@ -814,7 +905,10 @@ const TableMenuPage = () => {
                                                 <h3 className="font-semibold text-foreground text-base md:text-sm">
                                                     {item.name}
                                                 </h3>
-                                                <p className="font-bold text-lg md:text-base" style={{ color: '#C96048' }}>
+                                                <p
+                                                    className="font-bold text-lg md:text-base"
+                                                    style={{ color: '#C96048' }}
+                                                >
                                                     {item.price?.toLocaleString(
                                                         'vi-VN'
                                                     )}
@@ -831,14 +925,22 @@ const TableMenuPage = () => {
                                                         }
                                                         className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-2 md:p-1 rounded active:scale-95 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                                                     >
-                                                        <FiMinus size={18} className="md:text-base" />
+                                                        <FiMinus
+                                                            size={18}
+                                                            className="md:text-base"
+                                                        />
                                                     </button>
                                                     <input
                                                         type="number"
                                                         min="1"
                                                         value={
-                                                            inputValues[item.productId] !== undefined
-                                                                ? inputValues[item.productId]
+                                                            inputValues[
+                                                                item.productId
+                                                            ] !== undefined
+                                                                ? inputValues[
+                                                                      item
+                                                                          .productId
+                                                                  ]
                                                                 : item.quantity
                                                         }
                                                         onChange={(e) =>
@@ -848,10 +950,14 @@ const TableMenuPage = () => {
                                                             )
                                                         }
                                                         onBlur={() =>
-                                                            handleLocalQtyInputBlur(item.productId)
+                                                            handleLocalQtyInputBlur(
+                                                                item.productId
+                                                            )
                                                         }
                                                         className="w-14 md:w-12 text-center border border-border bg-background rounded text-base md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C96048]/50 py-1.5 md:py-0.5"
-                                                        style={{ color: '#C96048' }}
+                                                        style={{
+                                                            color: '#C96048',
+                                                        }}
                                                     />
                                                     <button
                                                         onClick={() =>
@@ -862,7 +968,10 @@ const TableMenuPage = () => {
                                                         }
                                                         className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-2 md:p-1 rounded active:scale-95 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                                                     >
-                                                        <FiPlus size={18} className="md:text-base" />
+                                                        <FiPlus
+                                                            size={18}
+                                                            className="md:text-base"
+                                                        />
                                                     </button>
                                                     <button
                                                         onClick={() =>
@@ -872,7 +981,10 @@ const TableMenuPage = () => {
                                                         }
                                                         className="ml-auto text-red-500 dark:text-red-400 p-2 md:p-1 active:scale-95 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                     >
-                                                        <FiTrash2 size={18} className="md:text-base" />
+                                                        <FiTrash2
+                                                            size={18}
+                                                            className="md:text-base"
+                                                        />
                                                     </button>
                                                 </div>
                                             </div>
@@ -886,7 +998,9 @@ const TableMenuPage = () => {
                         {localOrder.length > 0 && (
                             <div className="border-t border-border p-4 space-y-3 bg-card">
                                 <div className="flex justify-between items-center text-xl md:text-lg font-bold">
-                                    <span className="text-foreground">Tổng:</span>
+                                    <span className="text-foreground">
+                                        Tổng:
+                                    </span>
                                     <span style={{ color: '#C96048' }}>
                                         {totalAmount.toLocaleString('vi-VN')}đ
                                     </span>
@@ -905,10 +1019,14 @@ const TableMenuPage = () => {
                                         disabled={isSubmitting}
                                         className="w-full flex items-center justify-center gap-2 disabled:opacity-60 text-white font-bold py-4 md:py-3 rounded-xl transition-all active:scale-95"
                                         style={{
-                                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                            background:
+                                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                                         }}
                                     >
-                                        <FiSend size={20} className="md:text-lg" />
+                                        <FiSend
+                                            size={20}
+                                            className="md:text-lg"
+                                        />
                                         {isSubmitting
                                             ? 'Đang gửi...'
                                             : 'Gọi món ngay 🍽️'}
@@ -936,7 +1054,10 @@ const TableMenuPage = () => {
                         <div className="bg-blue-600 dark:bg-blue-700 text-white p-5 md:p-4">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
-                                    <MdOutlineKitchen size={24} className="md:text-[22px]" />
+                                    <MdOutlineKitchen
+                                        size={24}
+                                        className="md:text-[22px]"
+                                    />
                                     <h2 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
                                         <ShinyText
                                             text="Đơn gọi món"
@@ -988,17 +1109,21 @@ const TableMenuPage = () => {
                                                 key={index}
                                                 className="group relative flex items-center gap-3 p-4 md:p-3 rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02]"
                                                 style={{
-                                                    background: 'rgba(var(--card-rgb, 255, 255, 255), 0.05)',
-                                                    backdropFilter: 'blur(12px)',
+                                                    background:
+                                                        'rgba(var(--card-rgb, 255, 255, 255), 0.05)',
+                                                    backdropFilter:
+                                                        'blur(12px)',
                                                     border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.2)',
-                                                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                                                    boxShadow:
+                                                        '0 4px 16px rgba(0, 0, 0, 0.08)',
                                                 }}
                                             >
                                                 {/* Hover glow effect */}
                                                 <div
                                                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                                                     style={{
-                                                        background: 'radial-gradient(circle at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+                                                        background:
+                                                            'radial-gradient(circle at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
                                                     }}
                                                 />
 
@@ -1058,34 +1183,57 @@ const TableMenuPage = () => {
                         {/* Footer – Tổng + Voucher + Thanh toán */}
                         {currentOrder?.items?.length > 0 && (
                             <div className="border-t border-border p-4 space-y-3 bg-card">
-
                                 {/* PB29 – Voucher section (mobile-first) */}
                                 <div className="space-y-2.5">
                                     <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                                        <FiTag size={14} className="text-blue-500" />
+                                        <FiTag
+                                            size={14}
+                                            className="text-blue-500"
+                                        />
                                         Mã giảm giá
                                     </p>
 
                                     {appliedVoucher ? (
                                         /* ── APPLIED STATE ── */
-                                        <div className="flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl border"
-                                            style={{ background: 'rgba(34,197,94,0.09)', borderColor: 'rgba(34,197,94,0.4)' }}>
+                                        <div
+                                            className="flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl border"
+                                            style={{
+                                                background:
+                                                    'rgba(34,197,94,0.09)',
+                                                borderColor:
+                                                    'rgba(34,197,94,0.4)',
+                                            }}
+                                        >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                                                    style={{ background: 'rgba(34,197,94,0.15)' }}>
-                                                    <span className="text-lg">✅</span>
+                                                <div
+                                                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                                                    style={{
+                                                        background:
+                                                            'rgba(34,197,94,0.15)',
+                                                    }}
+                                                >
+                                                    <span className="text-lg">
+                                                        ✅
+                                                    </span>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="font-bold text-green-600 dark:text-green-400 text-base truncate">
                                                         {appliedVoucher.code}
                                                     </p>
                                                     <p className="text-xs text-green-700 dark:text-green-300 truncate">
-                                                        {appliedVoucher.name} · Giảm {appliedVoucher.discountAmount.toLocaleString('vi-VN')}đ
+                                                        {appliedVoucher.name} ·
+                                                        Giảm{' '}
+                                                        {appliedVoucher.discountAmount.toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                        đ
                                                     </p>
                                                 </div>
                                             </div>
-                                            <button onClick={handleRemoveVoucher}
-                                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition active:scale-90">
+                                            <button
+                                                onClick={handleRemoveVoucher}
+                                                className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition active:scale-90"
+                                            >
                                                 <FiX size={18} />
                                             </button>
                                         </div>
@@ -1093,29 +1241,75 @@ const TableMenuPage = () => {
                                         <div className="space-y-3">
                                             {/* ── BEST VOUCHER HERO CARD ── */}
                                             {bestVoucher && (
-                                                <div className="rounded-2xl overflow-hidden border border-blue-200 dark:border-blue-700"
-                                                    style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(59,130,246,0.04) 100%)' }}>
-                                                    <div className="px-1 py-0.5 text-center"
-                                                        style={{ background: 'linear-gradient(90deg, #1d4ed8, #2563eb)' }}>
-                                                        <p className="text-white text-[10px] font-bold tracking-widest uppercase">🏆 Mã tốt nhất cho bạn</p>
+                                                <div
+                                                    className="rounded-2xl overflow-hidden border border-blue-200 dark:border-blue-700"
+                                                    style={{
+                                                        background:
+                                                            'linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(59,130,246,0.04) 100%)',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="px-1 py-0.5 text-center"
+                                                        style={{
+                                                            background:
+                                                                'linear-gradient(90deg, #1d4ed8, #2563eb)',
+                                                        }}
+                                                    >
+                                                        <p className="text-white text-[10px] font-bold tracking-widest uppercase">
+                                                            🏆 Mã tốt nhất cho
+                                                            bạn
+                                                        </p>
                                                     </div>
                                                     <div className="p-3.5 flex items-center gap-3">
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-black text-blue-700 dark:text-blue-300 text-lg leading-none">{bestVoucher.code}</p>
-                                                            <p className="text-sm text-blue-600 dark:text-blue-400 mt-0.5 font-medium">{bestVoucher.discountText}</p>
-                                                            {bestVoucher.minOrder > 0 && (
-                                                                <p className="text-xs text-muted-foreground mt-0.5">Đơn tối thiểu {bestVoucher.minOrder.toLocaleString('vi-VN')}đ</p>
+                                                            <p className="font-black text-blue-700 dark:text-blue-300 text-lg leading-none">
+                                                                {
+                                                                    bestVoucher.code
+                                                                }
+                                                            </p>
+                                                            <p className="text-sm text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
+                                                                {
+                                                                    bestVoucher.discountText
+                                                                }
+                                                            </p>
+                                                            {bestVoucher.minOrder >
+                                                                0 && (
+                                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                                    Đơn tối
+                                                                    thiểu{' '}
+                                                                    {bestVoucher.minOrder.toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}
+                                                                    đ
+                                                                </p>
                                                             )}
                                                             {bestVoucher.expiryDate && (
-                                                                <p className="text-xs text-muted-foreground">HSD: {bestVoucher.expiryDate}</p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    HSD:{' '}
+                                                                    {
+                                                                        bestVoucher.expiryDate
+                                                                    }
+                                                                </p>
                                                             )}
                                                         </div>
                                                         <button
-                                                            onClick={() => handleApplyVoucher(bestVoucher.code)}
-                                                            disabled={voucherLoading}
+                                                            onClick={() =>
+                                                                handleApplyVoucher(
+                                                                    bestVoucher.code
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                voucherLoading
+                                                            }
                                                             className="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 active:scale-95 transition shadow-md"
-                                                            style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)' }}>
-                                                            {voucherLoading ? '...' : 'Áp dụng'}
+                                                            style={{
+                                                                background:
+                                                                    'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                                                            }}
+                                                        >
+                                                            {voucherLoading
+                                                                ? '...'
+                                                                : 'Áp dụng'}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1125,58 +1319,145 @@ const TableMenuPage = () => {
                                             {availableVouchers.length > 0 && (
                                                 <div>
                                                     <button
-                                                        onClick={() => setShowAllVouchers(v => !v)}
-                                                        className="w-full flex items-center justify-between py-2 text-sm font-medium text-blue-600 dark:text-blue-400 active:opacity-70 transition">
+                                                        onClick={() =>
+                                                            setShowAllVouchers(
+                                                                (v) => !v
+                                                            )
+                                                        }
+                                                        className="w-full flex items-center justify-between py-2 text-sm font-medium text-blue-600 dark:text-blue-400 active:opacity-70 transition"
+                                                    >
                                                         <span className="flex items-center gap-1.5">
                                                             <FiTag size={13} />
-                                                            Xem tất cả ({availableVouchers.length} mã)
+                                                            Xem tất cả (
+                                                            {
+                                                                availableVouchers.length
+                                                            }{' '}
+                                                            mã)
                                                         </span>
-                                                        <span className="text-lg leading-none">{showAllVouchers ? '▲' : '▼'}</span>
+                                                        <span className="text-lg leading-none">
+                                                            {showAllVouchers
+                                                                ? '▲'
+                                                                : '▼'}
+                                                        </span>
                                                     </button>
 
                                                     {showAllVouchers && (
                                                         <div className="space-y-2 pt-1">
                                                             {/* Active vouchers */}
-                                                            {availableVouchers.filter(v => v.isActive && !v.isUpcoming).map((v) => (
-                                                                <button
-                                                                    key={v.id}
-                                                                    onClick={() => handleApplyVoucher(v.code)}
-                                                                    disabled={voucherLoading}
-                                                                    className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-border bg-accent/30 hover:bg-accent/60 active:scale-[0.98] transition text-left disabled:opacity-60">
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                                            <span className="font-bold text-foreground text-sm">{v.code}</span>
-                                                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
-                                                                                Khả dụng
-                                                                            </span>
+                                                            {availableVouchers
+                                                                .filter(
+                                                                    (v) =>
+                                                                        v.isActive &&
+                                                                        !v.isUpcoming
+                                                                )
+                                                                .map((v) => (
+                                                                    <button
+                                                                        key={
+                                                                            v.id
+                                                                        }
+                                                                        onClick={() =>
+                                                                            handleApplyVoucher(
+                                                                                v.code
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            voucherLoading
+                                                                        }
+                                                                        className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-border bg-accent/30 hover:bg-accent/60 active:scale-[0.98] transition text-left disabled:opacity-60"
+                                                                    >
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                                <span className="font-bold text-foreground text-sm">
+                                                                                    {
+                                                                                        v.code
+                                                                                    }
+                                                                                </span>
+                                                                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
+                                                                                    Khả
+                                                                                    dụng
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                                                {
+                                                                                    v.discountText
+                                                                                }
+                                                                            </p>
+                                                                            {v.expiryDate && (
+                                                                                <p className="text-[10px] text-muted-foreground">
+                                                                                    HSD:{' '}
+                                                                                    {
+                                                                                        v.expiryDate
+                                                                                    }
+                                                                                </p>
+                                                                            )}
                                                                         </div>
-                                                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{v.discountText}</p>
-                                                                        {v.expiryDate && <p className="text-[10px] text-muted-foreground">HSD: {v.expiryDate}</p>}
-                                                                    </div>
-                                                                    <span className="text-blue-500 text-xs font-semibold flex-shrink-0">Chọn →</span>
-                                                                </button>
-                                                            ))}
+                                                                        <span className="text-blue-500 text-xs font-semibold flex-shrink-0">
+                                                                            Chọn
+                                                                            →
+                                                                        </span>
+                                                                    </button>
+                                                                ))}
 
                                                             {/* Upcoming vouchers */}
-                                                            {availableVouchers.filter(v => v.isUpcoming).length > 0 && (
+                                                            {availableVouchers.filter(
+                                                                (v) =>
+                                                                    v.isUpcoming
+                                                            ).length > 0 && (
                                                                 <div className="pt-1">
-                                                                    <p className="text-xs text-muted-foreground font-medium mb-1.5 px-0.5">📅 Sắp diễn ra</p>
-                                                                    {availableVouchers.filter(v => v.isUpcoming).map((v) => (
-                                                                        <div key={v.id}
-                                                                            className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-dashed border-border bg-card/60 opacity-70 mb-2">
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                                    <span className="font-bold text-foreground text-sm">{v.code}</span>
-                                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
-                                                                                        Sắp có
+                                                                    <p className="text-xs text-muted-foreground font-medium mb-1.5 px-0.5">
+                                                                        📅 Sắp
+                                                                        diễn ra
+                                                                    </p>
+                                                                    {availableVouchers
+                                                                        .filter(
+                                                                            (
+                                                                                v
+                                                                            ) =>
+                                                                                v.isUpcoming
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                v
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={
+                                                                                        v.id
+                                                                                    }
+                                                                                    className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-dashed border-border bg-card/60 opacity-70 mb-2"
+                                                                                >
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                                            <span className="font-bold text-foreground text-sm">
+                                                                                                {
+                                                                                                    v.code
+                                                                                                }
+                                                                                            </span>
+                                                                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+                                                                                                Sắp
+                                                                                                có
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                                                            {
+                                                                                                v.discountText
+                                                                                            }
+                                                                                        </p>
+                                                                                        {v.availableFrom && (
+                                                                                            <p className="text-[10px] text-muted-foreground">
+                                                                                                Bắt
+                                                                                                đầu:{' '}
+                                                                                                {
+                                                                                                    v.availableFrom
+                                                                                                }
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <span className="text-muted-foreground text-xs flex-shrink-0">
+                                                                                        🔒
                                                                                     </span>
                                                                                 </div>
-                                                                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{v.discountText}</p>
-                                                                                {v.availableFrom && <p className="text-[10px] text-muted-foreground">Bắt đầu: {v.availableFrom}</p>}
-                                                                            </div>
-                                                                            <span className="text-muted-foreground text-xs flex-shrink-0">🔒</span>
-                                                                        </div>
-                                                                    ))}
+                                                                            )
+                                                                        )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1189,46 +1470,87 @@ const TableMenuPage = () => {
                                                 <input
                                                     type="text"
                                                     value={voucherCode}
-                                                    onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(''); }}
-                                                    onKeyDown={(e) => e.key === 'Enter' && handleApplyVoucher()}
+                                                    onChange={(e) => {
+                                                        setVoucherCode(
+                                                            e.target.value.toUpperCase()
+                                                        );
+                                                        setVoucherError('');
+                                                    }}
+                                                    onKeyDown={(e) =>
+                                                        e.key === 'Enter' &&
+                                                        handleApplyVoucher()
+                                                    }
                                                     placeholder="Nhập mã khác..."
                                                     className="flex-1 px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 bg-background text-foreground uppercase tracking-widest"
                                                 />
                                                 <button
-                                                    onClick={() => handleApplyVoucher()}
-                                                    disabled={voucherLoading || !voucherCode.trim()}
+                                                    onClick={() =>
+                                                        handleApplyVoucher()
+                                                    }
+                                                    disabled={
+                                                        voucherLoading ||
+                                                        !voucherCode.trim()
+                                                    }
                                                     className="px-4 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 active:scale-95 transition min-w-[76px]"
-                                                    style={{ background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' }}>
-                                                    {voucherLoading ? '...' : 'Áp dụng'}
+                                                    style={{
+                                                        background:
+                                                            'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                                                    }}
+                                                >
+                                                    {voucherLoading
+                                                        ? '...'
+                                                        : 'Áp dụng'}
                                                 </button>
                                             </div>
 
                                             {voucherError && (
                                                 <p className="text-sm text-red-500 flex items-center gap-1.5 px-1">
-                                                    <FiX size={13} />{voucherError}
+                                                    <FiX size={13} />
+                                                    {voucherError}
                                                 </p>
                                             )}
                                         </div>
                                     )}
                                 </div>
 
-
                                 {/* Summary */}
                                 <div className="space-y-1 pt-2 border-t border-border">
                                     <div className="flex justify-between text-sm text-muted-foreground">
                                         <span>Tạm tính:</span>
-                                        <span>{(currentOrder.subTotal || currentOrder.total || 0).toLocaleString('vi-VN')}đ</span>
+                                        <span>
+                                            {(
+                                                currentOrder.subTotal ||
+                                                currentOrder.total ||
+                                                0
+                                            ).toLocaleString('vi-VN')}
+                                            đ
+                                        </span>
                                     </div>
                                     {appliedVoucher && (
                                         <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
                                             <span>Giảm giá:</span>
-                                            <span>-{appliedVoucher.discountAmount.toLocaleString('vi-VN')}đ</span>
+                                            <span>
+                                                -
+                                                {appliedVoucher.discountAmount.toLocaleString(
+                                                    'vi-VN'
+                                                )}
+                                                đ
+                                            </span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-xl md:text-lg font-bold">
-                                        <span className="text-blue-800 dark:text-blue-400">Tổng cộng:</span>
+                                        <span className="text-blue-800 dark:text-blue-400">
+                                            Tổng cộng:
+                                        </span>
                                         <span className="text-blue-600 dark:text-blue-400">
-                                            {((currentOrder.subTotal || currentOrder.total || 0) - (appliedVoucher?.discountAmount || 0)).toLocaleString('vi-VN')}đ
+                                            {(
+                                                (currentOrder.subTotal ||
+                                                    currentOrder.total ||
+                                                    0) -
+                                                (appliedVoucher?.discountAmount ||
+                                                    0)
+                                            ).toLocaleString('vi-VN')}
+                                            đ
                                         </span>
                                     </div>
                                 </div>
@@ -1236,7 +1558,10 @@ const TableMenuPage = () => {
                                 <div className="flex justify-between text-sm text-muted-foreground">
                                     <span>Tổng số lượng:</span>
                                     <span className="font-semibold">
-                                        {currentOrder.items.reduce((s, i) => s + i.quantity, 0)}
+                                        {currentOrder.items.reduce(
+                                            (s, i) => s + i.quantity,
+                                            0
+                                        )}
                                     </span>
                                 </div>
 
@@ -1251,7 +1576,10 @@ const TableMenuPage = () => {
                                 </button>
                                 <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-2">
                                     <span>ℹ️</span>
-                                    <span>Bạn có thể tiếp tục gọi thêm món. Thanh toán khi dùng xong.</span>
+                                    <span>
+                                        Bạn có thể tiếp tục gọi thêm món. Thanh
+                                        toán khi dùng xong.
+                                    </span>
                                 </div>
                             </div>
                         )}
