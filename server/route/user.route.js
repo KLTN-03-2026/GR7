@@ -5,7 +5,8 @@ import {
     updateUserDetails, uploadAvatar, userDetails, userPoints, verifyEmailController,
     verifyForgotPasswordOtp, verifyPassword, getCustomerAnalytics, googleLoginController, facebookLoginController,
     getAdminUsers, createAdminUser, updateAdminUser,
-    getDeletedAdminUsers, softDeleteAdminUser, restoreAdminUser, hardDeleteAdminUser
+    getDeletedAdminUsers, softDeleteAdminUser, restoreAdminUser, hardDeleteAdminUser,
+    getLoyaltyHistory
 } from '../controllers/user.controller.js'
 import auth from '../middleware/auth.js'
 import { admin } from '../middleware/Admin.js'
@@ -29,6 +30,7 @@ userRouter.post('/verify-password', auth, verifyPassword)
 userRouter.put('/change-password', auth, changePassword)
 userRouter.get('/user-details', auth, userDetails)
 userRouter.get('/user-points', auth, userPoints)
+userRouter.get('/loyalty-history', auth, getLoyaltyHistory)
 
 // Analytics route
 userRouter.get('/analytics', auth, getCustomerAnalytics)

@@ -140,6 +140,12 @@ const orderSlice = createSlice({
                     payment_status: mapPaymentStatus(order.paymentStatus, order.status),
                     // BillPage reads totalAmt, tableOrder has total
                     totalAmt: order.total || 0,
+                    subTotal: order.subTotal || 0,
+                    discount: order.discount || 0,
+                    pointsDiscount: order.pointsDiscount || 0,
+                    // customer info
+                    customerName: order.userId?.name || (order.tableNumber ? `Bàn ${order.tableNumber} - Khách vãng lai` : 'Khách vãng lai'),
+                    customerPhone: order.userId?.mobile || '',
                     // BillPage reads products[], tableOrder has items[]
                     products: (order.items || []).map(item => ({
                         name: item.name,
@@ -163,6 +169,9 @@ const orderSlice = createSlice({
                             ...updatedOrder,
                             payment_status: mapPaymentStatus(updatedOrder.paymentStatus, updatedOrder.status),
                             totalAmt: updatedOrder.total || 0,
+                            subTotal: updatedOrder.subTotal || 0,
+                            discount: updatedOrder.discount || 0,
+                            pointsDiscount: updatedOrder.pointsDiscount || 0,
                             products: (updatedOrder.items || []).map(item => ({
                                 name: item.name,
                                 quantity: item.quantity,

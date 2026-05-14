@@ -1,6 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FiCheckCircle, FiArrowLeft, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
+import {
+    FiCheckCircle,
+    FiArrowLeft,
+    FiAlertCircle,
+    FiRefreshCw,
+} from 'react-icons/fi';
 import Axios from '../utils/Axios';
 import SummaryApi from '../common/SummaryApi';
 import toast from 'react-hot-toast';
@@ -13,11 +18,11 @@ import { motion } from 'framer-motion';
  */
 
 const STATUS = {
-    LOADING:      'loading',
-    PAID:         'paid',
-    PENDING:      'pending',       // webhook not received yet – polling
+    LOADING: 'loading',
+    PAID: 'paid',
+    PENDING: 'pending', // webhook not received yet – polling
     BILL_CHANGED: 'bill_changed',
-    ERROR:        'error',
+    ERROR: 'error',
 };
 
 const TablePaymentSuccessPage = () => {
@@ -51,7 +56,9 @@ const TablePaymentSuccessPage = () => {
                 setStatus(STATUS.PAID);
                 setOrderData(body.data);
                 clearInterval(pollRef.current);
-                toast.success('Thanh toán thành công. Cảm ơn quý khách!', { duration: 5000 });
+                toast.success('Thanh toán thành công. Cảm ơn quý khách!', {
+                    duration: 5000,
+                });
             } else if (s === 'bill_changed') {
                 setStatus(STATUS.BILL_CHANGED);
                 clearInterval(pollRef.current);
@@ -62,7 +69,9 @@ const TablePaymentSuccessPage = () => {
                 if (pollCountRef.current >= MAX_POLLS) {
                     clearInterval(pollRef.current);
                     setStatus(STATUS.ERROR);
-                    setMessage('Không nhận được xác nhận thanh toán. Vui lòng liên hệ nhân viên.');
+                    setMessage(
+                        'Không nhận được xác nhận thanh toán. Vui lòng liên hệ nhân viên.'
+                    );
                 }
             }
         } catch {
@@ -85,13 +94,16 @@ const TablePaymentSuccessPage = () => {
         pollRef.current = setInterval(verify, 5000);
 
         return () => clearInterval(pollRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sessionId]);
 
     // ─── Render helpers ─────────────────────────────────
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { when: 'beforeChildren', staggerChildren: 0.1 } },
+        visible: {
+            opacity: 1,
+            transition: { when: 'beforeChildren', staggerChildren: 0.1 },
+        },
     };
     const itemVariants = {
         hidden: { y: 20, opacity: 0 },
@@ -105,9 +117,13 @@ const TablePaymentSuccessPage = () => {
                 <div className="text-center space-y-4">
                     <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto" />
                     <p className="text-gray-600 font-medium text-lg">
-                        {status === STATUS.LOADING ? 'Đang xác nhận thanh toán...' : 'Đang chờ xác nhận từ Stripe...'}
+                        {status === STATUS.LOADING
+                            ? 'Đang xác nhận thanh toán...'
+                            : 'Đang chờ xác nhận từ Stripe...'}
                     </p>
-                    <p className="text-gray-400 text-sm">Vui lòng không đóng trang này</p>
+                    <p className="text-gray-400 text-sm">
+                        Vui lòng không đóng trang này
+                    </p>
                 </div>
             </div>
         );
@@ -120,7 +136,9 @@ const TablePaymentSuccessPage = () => {
                 <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
                     <div className="bg-yellow-500 py-8 px-6 text-center">
                         <FiAlertCircle className="text-white text-5xl mx-auto mb-3" />
-                        <h1 className="text-2xl font-bold text-white">Đơn hàng đã thay đổi</h1>
+                        <h1 className="text-2xl font-bold text-white">
+                            Đơn hàng đã thay đổi
+                        </h1>
                     </div>
                     <div className="p-6 space-y-4">
                         <p className="text-gray-700 text-center">
@@ -145,11 +163,14 @@ const TablePaymentSuccessPage = () => {
                 <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
                     <div className="bg-red-500 py-8 px-6 text-center">
                         <FiAlertCircle className="text-white text-5xl mx-auto mb-3" />
-                        <h1 className="text-2xl font-bold text-white">Thanh toán thất bại</h1>
+                        <h1 className="text-2xl font-bold text-white">
+                            Thanh toán thất bại
+                        </h1>
                     </div>
                     <div className="p-6 space-y-4">
                         <p className="text-gray-700 text-center">
-                            {message || 'Thanh toán không thành công. Vui lòng thử lại.'}
+                            {message ||
+                                'Thanh toán không thành công. Vui lòng thử lại.'}
                         </p>
                         <button
                             onClick={() => navigate('/table-order-management')}
@@ -186,13 +207,19 @@ const TablePaymentSuccessPage = () => {
                     >
                         Thanh Toán Thành Công!
                     </motion.h1>
-                    <motion.p className="text-green-100 text-lg" variants={itemVariants}>
+                    <motion.p
+                        className="text-green-100 text-lg"
+                        variants={itemVariants}
+                    >
                         Cảm ơn quý khách!
                     </motion.p>
                 </div>
 
                 {/* Content */}
-                <motion.div className="p-6 md:p-8 space-y-6" variants={itemVariants}>
+                <motion.div
+                    className="p-6 md:p-8 space-y-6"
+                    variants={itemVariants}
+                >
                     <div className="bg-green-50 rounded-lg border-l-4 border-green-500 p-4">
                         <p className="text-green-800 font-semibold text-lg">
                             Thanh toán thành công. Cảm ơn quý khách!
@@ -201,7 +228,16 @@ const TablePaymentSuccessPage = () => {
                             <p className="text-green-700 text-sm mt-1">
                                 Bàn: <strong>{orderData.tableNumber}</strong>
                                 {orderData.total && (
-                                    <> &nbsp;|&nbsp; Tổng: <strong>{orderData.total.toLocaleString('vi-VN')}đ</strong></>
+                                    <>
+                                        {' '}
+                                        &nbsp;|&nbsp; Tổng:{' '}
+                                        <strong>
+                                            {orderData.total.toLocaleString(
+                                                'vi-VN'
+                                            )}
+                                            đ
+                                        </strong>
+                                    </>
                                 )}
                             </p>
                         )}
@@ -215,28 +251,90 @@ const TablePaymentSuccessPage = () => {
                             </div>
                             <div className="divide-y divide-gray-100">
                                 {orderData.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between px-4 py-2 text-sm">
-                                        <span className="text-gray-700">{item.name} x{item.quantity}</span>
-                                        <span className="font-medium">
-                                            {(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                                    <div
+                                        key={idx}
+                                        className="flex justify-between px-4 py-2 text-sm"
+                                    >
+                                        <span className="text-gray-700">
+                                            {item.name} x{item.quantity}
+                                        </span>
+                                        <span className="font-medium text-rose-400">
+                                            {(
+                                                item.price * item.quantity
+                                            ).toLocaleString('vi-VN')}
+                                            đ
                                         </span>
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Summary Breakdown inside the same box */}
+                            <div className="bg-gray-50/50 p-4 border-t border-gray-100 space-y-2">
+                                <div className="flex justify-between text-sm text-gray-500">
+                                    <span>Tạm tính:</span>
+                                    <span className="font-medium">
+                                        {(
+                                            orderData.subTotal ||
+                                            orderData.total
+                                        ).toLocaleString('vi-VN')}
+                                        đ
+                                    </span>
+                                </div>
+                                {orderData.discount > 0 && (
+                                    <div className="flex justify-between text-sm text-green-600">
+                                        <span>Giảm giá (Voucher):</span>
+                                        <span className="font-medium">
+                                            -
+                                            {orderData.discount.toLocaleString(
+                                                'vi-VN'
+                                            )}
+                                            đ
+                                        </span>
+                                    </div>
+                                )}
+                                {orderData.pointsDiscount > 0 && (
+                                    <div className="flex justify-between text-sm text-blue-600">
+                                        <span>Giảm giá (Điểm):</span>
+                                        <span className="font-medium">
+                                            -
+                                            {orderData.pointsDiscount.toLocaleString(
+                                                'vi-VN'
+                                            )}
+                                            đ
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <span className="font-bold text-gray-700">
+                                        Tổng cộng:
+                                    </span>
+                                    <span className="font-bold text-xl text-green-600">
+                                        {orderData.total.toLocaleString(
+                                            'vi-VN'
+                                        )}
+                                        đ
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {sessionId && (
                         <div className="bg-gray-50 rounded-lg p-4">
-                            <p className="text-sm text-gray-500">Mã giao dịch:</p>
-                            <p className="text-xs text-gray-400 font-mono mt-1 break-all">{sessionId}</p>
+                            <p className="text-sm text-gray-500">
+                                Mã giao dịch:
+                            </p>
+                            <p className="text-xs text-blue-900 font-mono mt-1 break-all">
+                                {sessionId}
+                            </p>
                         </div>
                     )}
 
                     <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
                         <p className="text-sm text-yellow-800">
-                            <strong>Lưu ý:</strong> Phiên đăng nhập của bạn đã hết hạn sau khi thanh toán.
-                            Vui lòng quét lại mã QR tại bàn nếu muốn tiếp tục đặt món.
+                            <strong>Lưu ý:</strong> Phiên đăng nhập của bạn đã
+                            hết hạn sau khi thanh toán. Vui lòng quét lại mã QR
+                            tại bàn nếu muốn tiếp tục đặt món.
                         </p>
                     </div>
 

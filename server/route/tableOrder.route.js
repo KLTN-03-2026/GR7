@@ -13,7 +13,8 @@ import {
     verifyStripeSession,
     applyVoucherToTableOrder,
     removeVoucherFromTableOrder,
-    applyRewardPointsToTableOrder
+    applyRewardPointsToTableOrder,
+    cancelRewardPoints
 } from '../controllers/tableOrder.controller.js';
 
 
@@ -42,5 +43,6 @@ tableOrderRouter.get('/verify-stripe-session', auth, verifyStripeSession);
 tableOrderRouter.patch('/:id/apply-voucher', auth, applyVoucherToTableOrder);
 tableOrderRouter.patch('/:id/remove-voucher', auth, removeVoucherFromTableOrder);
 tableOrderRouter.patch('/:id/apply-reward-points', auth, applyRewardPointsToTableOrder);
+tableOrderRouter.post('/:id/cancel-reward-points', auth, cancelRewardPoints);
 
 export default tableOrderRouter;

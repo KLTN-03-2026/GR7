@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
     mobile: {
         type: String,
         default: null,
+        index: true
     },
     refresh_token: {
         type: String,
@@ -99,9 +100,14 @@ const userSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
+    tierPoints: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
     tierLevel: {
         type: String,
-        enum: ['bronze', 'silver', 'gold', 'platinum'],
+        enum: ['bronze', 'silver', 'gold', 'diamond'],
         default: 'bronze',
     },
     tierBenefits: {

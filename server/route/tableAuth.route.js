@@ -4,13 +4,17 @@ import {
     createTableAccountController,
     loginViaQRController,
     getTableSessionController,
-    logoutTableController
+    logoutTableController,
+    quickRegisterCustomerController,
+    linkCustomerToTableController
 } from "../controllers/tableAuth.controller.js";
 
 const tableAuthRouter = Router();
 
 // Public routes
 tableAuthRouter.post('/login-qr', loginViaQRController);
+tableAuthRouter.post('/quick-register', quickRegisterCustomerController);
+tableAuthRouter.post('/link-customer', linkCustomerToTableController);
 
 // Protected routes (require authentication)
 tableAuthRouter.post('/create-account', auth, createTableAccountController);

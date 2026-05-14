@@ -12,7 +12,11 @@ const initialValue = {
     shopping_cart: [],
     orderHistory: [],
     role: '',
-    rewardsPoint: 0
+    rewardsPoint: 0,
+    tierPoints: 0,
+    tierLevel: 'bronze',
+    tableId: null,
+    tableNumber: null
 }
 
 const userSlice = createSlice({
@@ -32,6 +36,10 @@ const userSlice = createSlice({
             state.orderHistory = action.payload?.orderHistory
             state.role = action.payload?.role
             state.rewardsPoint = action.payload?.rewardsPoint
+            state.tierPoints = action.payload?.tierPoints || 0
+            state.tierLevel = action.payload?.tierLevel || 'bronze'
+            state.tableId = action.payload?.tableId || null
+            state.tableNumber = action.payload?.tableNumber || null
         },
         updatedAvatar: (state, action) => {
             state.avatar = action.payload
@@ -49,6 +57,10 @@ const userSlice = createSlice({
             state.orderHistory = []
             state.role = ''
             state.rewardsPoint = 0
+            state.tierPoints = 0
+            state.tierLevel = 'bronze'
+            state.tableId = null
+            state.tableNumber = null
         },
         updateUserPoints: (state, action) => {
             if (action.payload !== undefined) {

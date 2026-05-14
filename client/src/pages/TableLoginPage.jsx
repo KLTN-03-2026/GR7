@@ -50,14 +50,20 @@ const TableLoginPage = () => {
                         response.data.data.sessionInfo || {};
 
                     if (hasActiveSession) {
-                        toast(`🍽️ Bàn đang có ${activeOrderItemCount} món đã gọi. Bạn đang tham gia phiên hiện tại!`, {
-                            duration: 4000,
-                            icon: '🪑',
-                        });
+                        toast(
+                            `🍽️ Bàn đang có ${activeOrderItemCount} món đã gọi. Bạn đang tham gia phiên hiện tại!`,
+                            {
+                                duration: 4000,
+                                icon: '🪑',
+                            }
+                        );
                     } else {
-                        toast.success('Chào mừng! Phiên gọi món mới đã được khởi tạo 🍽️', {
-                            duration: 3000,
-                        });
+                        toast.success(
+                            'Chào mừng! Phiên gọi món mới đã được khởi tạo 🍽️',
+                            {
+                                duration: 3000,
+                            }
+                        );
                     }
 
                     // Redirect sang customer checkin (loyalty), truyền hasActiveSession để checkin page biết
@@ -89,13 +95,20 @@ const TableLoginPage = () => {
                     <div
                         className="w-20 h-20 md:w-16 md:h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-6"
                         style={{
-                            borderColor: theme === 'dark' ? 'rgba(201,96,72,0.3)' : 'rgba(201,96,72,0.2)',
+                            borderColor:
+                                theme === 'dark'
+                                    ? 'rgba(201,96,72,0.3)'
+                                    : 'rgba(201,96,72,0.2)',
                             borderTopColor: 'transparent',
                             borderRightColor: '#C96048',
                         }}
                     />
-                    <p className="text-xl md:text-lg text-foreground font-semibold">Đang xác thực mã QR...</p>
-                    <p className="text-base md:text-sm text-muted-foreground mt-2">Vui lòng chờ trong giây lát</p>
+                    <p className="text-xl md:text-lg text-foreground font-semibold">
+                        Đang xác thực mã QR...
+                    </p>
+                    <p className="text-base md:text-sm text-muted-foreground mt-2">
+                        Vui lòng chờ trong giây lát
+                    </p>
                 </div>
             </div>
         );
@@ -108,9 +121,10 @@ const TableLoginPage = () => {
                     <div
                         className="w-24 h-24 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6"
                         style={{
-                            background: theme === 'dark'
-                                ? 'rgba(239,68,68,0.15)'
-                                : 'rgba(254,226,226,1)',
+                            background:
+                                theme === 'dark'
+                                    ? 'rgba(239,68,68,0.15)'
+                                    : 'rgba(254,226,226,1)',
                         }}
                     >
                         <svg
@@ -130,12 +144,15 @@ const TableLoginPage = () => {
                     <h2 className="text-2xl md:text-xl font-bold text-foreground mb-3">
                         Mã QR không hợp lệ
                     </h2>
-                    <p className="text-base md:text-sm text-muted-foreground mb-8 leading-relaxed">{error}</p>
+                    <p className="text-base md:text-sm text-muted-foreground mb-8 leading-relaxed">
+                        {error}
+                    </p>
                     <button
                         onClick={() => navigate('/')}
                         className="w-full text-white font-semibold text-lg md:text-base py-4 md:py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95"
                         style={{
-                            background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                            background:
+                                'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.opacity = '0.9';
