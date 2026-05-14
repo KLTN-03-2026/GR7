@@ -176,7 +176,12 @@ const TableOrderManagementPage = () => {
     const [showBillPreview, setShowBillPreview] = useState(false);
 
     useEffect(() => {
-        if (!user || user.role !== 'TABLE') {
+        if (!user || (user.role !== 'TABLE' && user.role !== 'CUSTOMER')) {
+            toast.error('Vui lòng quét mã QR tại bàn');
+            navigate('/');
+            return;
+        }
+        if (user.role === 'CUSTOMER' && !user.tableId) {
             toast.error('Vui lòng quét mã QR tại bàn');
             navigate('/');
             return;

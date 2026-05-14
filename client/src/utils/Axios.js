@@ -17,7 +17,7 @@ const Axios = axios.create({
 // Request interceptor
 Axios.interceptors.request.use(
     (config) => {
-        const accessToken = localStorage.getItem("accesstoken");
+        const accessToken = localStorage.getItem("accessToken") || localStorage.getItem("accesstoken");
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
@@ -53,6 +53,7 @@ Axios.interceptors.response.use(
             }
 
             // Refresh fail → clear token và redirect login (chỉ 1 lần)
+            localStorage.removeItem("accessToken");
             localStorage.removeItem("accesstoken");
             localStorage.removeItem("refreshToken");
 
@@ -79,7 +80,7 @@ const refreshAccessToken = async (refreshToken) => {
 
         const accessToken = response.data?.data?.accessToken;
         if (accessToken) {
-            localStorage.setItem("accesstoken", accessToken);
+            localStorage.setItem("accessToken", accessToken);
         }
         return accessToken;
     } catch (error) {

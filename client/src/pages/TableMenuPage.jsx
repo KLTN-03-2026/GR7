@@ -75,6 +75,23 @@ const TableMenuPage = () => {
     const [availableVouchers, setAvailableVouchers] = useState([]);
     const [bestVoucher, setBestVoucher] = useState(null);
     const [showAllVouchers, setShowAllVouchers] = useState(false);
+    const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
+    const [loyaltyHistory, setLoyaltyHistory] = useState([]);
+    const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+
+    const fetchLoyaltyHistory = async () => {
+        try {
+            setLoyaltyLoading(true);
+            const response = await Axios({ ...SummaryApi.getLoyaltyHistory });
+            if (response.data.success) {
+                setLoyaltyHistory(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching loyalty history:', error);
+        } finally {
+            setLoyaltyLoading(false);
+        }
+    };
 
     const fetchCurrentOrder = useCallback(async () => {
         try {
@@ -132,8 +149,16 @@ const TableMenuPage = () => {
 
     useEffect(() => {
         if (isCheckingAuth) return;
-        if (!user || user.role !== 'TABLE') {
+        if (!user || (user.role !== 'TABLE' && user.role !== 'CUSTOMER')) {
             toast.error('Vui lòng quét mã QR tại bàn để đặt món');
+            navigate('/');
+            return;
+        }
+        // Additional check for CUSTOMER: must have a table session
+        if (user.role === 'CUSTOMER' && !user.tableId) {
+            toast.error(
+                'Vui lòng quét mã QR tại bàn để liên kết phiên gọi món'
+            );
             navigate('/');
             return;
         }
@@ -462,8 +487,10 @@ const TableMenuPage = () => {
                 setShowAllVouchers(false);
                 toast.success('Đã hủy mã giảm giá');
             }
-        } catch (err) {
-            toast.error('Không thể hủy mã giảm giá');
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message || 'Không thể hủy mã giảm giá'
+            );
         }
     };
 
@@ -507,13 +534,67 @@ const TableMenuPage = () => {
                 }}
             >
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
-                            {tableInfo?.tableNumber || 'Bàn'}
-                        </h1>
-                        <p className="text-base md:text-sm opacity-90">
-                            {tableInfo?.tableLocation || 'Nhà hàng EatEase'}
-                        </p>
+                    <div
+                        className={
+                            user?.role === 'CUSTOMER'
+                                ? 'cursor-pointer hover:opacity-80 transition-opacity'
+                                : ''
+                        }
+                        onClick={() => {
+                            if (user?.role === 'CUSTOMER') {
+                                setShowLoyaltyModal(true);
+                                fetchLoyaltyHistory();
+                            }
+                        }}
+                    >
+                        {user?.role === 'CUSTOMER' ? (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
+                                        {user.name}
+                                    </h1>
+                                    <span
+                                        className="text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                                        style={{
+                                            background:
+                                                user.tierLevel === 'platinum'
+                                                    ? 'linear-gradient(135deg, #e5e4e2, #b0b0b0)'
+                                                    : user.tierLevel === 'gold'
+                                                      ? 'linear-gradient(135deg, #ffd700, #daa520)'
+                                                      : user.tierLevel ===
+                                                          'silver'
+                                                        ? 'linear-gradient(135deg, #c0c0c0, #a0a0a0)'
+                                                        : 'linear-gradient(135deg, #cd7f32, #a0522d)',
+                                            color:
+                                                user.tierLevel === 'gold'
+                                                    ? '#5c4300'
+                                                    : '#fff',
+                                        }}
+                                    >
+                                        {user.tierLevel || 'Bronze'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm opacity-90 mt-0.5">
+                                    <span>
+                                        🪑 {tableInfo?.tableNumber || 'Bàn'}
+                                    </span>
+                                    <span>•</span>
+                                    <span>
+                                        ⭐ {user.rewardsPoint || 0} điểm
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h1 className="text-2xl md:text-xl font-bold font-[Bahnschrift,_system-ui]">
+                                    {tableInfo?.tableNumber || 'Bàn'}
+                                </h1>
+                                <p className="text-base md:text-sm opacity-90">
+                                    {tableInfo?.tableLocation ||
+                                        'Nhà hàng EatEase'}
+                                </p>
+                            </>
+                        )}
                     </div>
                     <div className="flex items-center gap-3 md:gap-2">
                         {/* Current Order button (US18) */}
@@ -1583,6 +1664,214 @@ const TableMenuPage = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+            {/* Loyalty Dashboard Modal */}
+            {showLoyaltyModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        {/* Modal Header */}
+                        <div
+                            className="p-6 md:p-5 flex justify-between items-center border-b dark:border-gray-800"
+                            style={{
+                                background:
+                                    'linear-gradient(135deg, rgb(86 86 86) 0%, rgb(0 20 41) 100%)',
+                            }}
+                        >
+                            <div className="flex items-center gap-3 text-gray-800 dark:text-gray-100">
+                                <div className="p-2 bg-white rounded-lg shadow-sm">
+                                    ⭐
+                                </div>
+                                <div>
+                                    <h2 className="text-xl md:text-lg font-bold">
+                                        Thành viên EatEase
+                                    </h2>
+                                    <p className="text-sm text-orange-400">
+                                        {user?.name}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowLoyaltyModal(false)}
+                                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500"
+                            >
+                                <FiX size={24} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 md:p-5 overflow-y-auto max-h-[70vh]">
+                            {/* Current Tier Card */}
+                            <div
+                                className="p-5 rounded-xl text-white mb-6 shadow-lg relative overflow-hidden"
+                                style={{
+                                    background:
+                                        user.tierLevel === 'platinum'
+                                            ? 'linear-gradient(135deg, #e5e4e2, #7f8c8d)'
+                                            : user.tierLevel === 'gold'
+                                              ? 'linear-gradient(135deg, #f1c40f, #f39c12)'
+                                              : user.tierLevel === 'silver'
+                                                ? 'linear-gradient(135deg, #bdc3c7, #95a5a6)'
+                                                : 'linear-gradient(135deg, #e67e22, #d35400)',
+                                }}
+                            >
+                                <div className="relative z-10">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className="text-xs font-bold uppercase tracking-[0.2em] opacity-80">
+                                            Hạng hiện tại
+                                        </span>
+                                        <span className="text-4xl md:text-3xl">
+                                            🏆
+                                        </span>
+                                    </div>
+                                    <h3 className="text-3xl md:text-2xl font-black uppercase mb-1">
+                                        {user.tierLevel || 'BRONZE'}
+                                    </h3>
+                                    <div className="text-2xl md:text-xl font-bold flex items-baseline gap-1">
+                                        {user.rewardsPoint || 0}{' '}
+                                        <span className="text-sm font-normal opacity-80 uppercase">
+                                            điểm
+                                        </span>
+                                    </div>
+                                </div>
+                                {/* Subtle pattern */}
+                                <div className="absolute -right-4 -bottom-4 text-9xl opacity-10 rotate-12 select-none">
+                                    ⭐
+                                </div>
+                            </div>
+
+                            {/* Progress to Next Tier */}
+                            {user.tierLevel !== 'platinum' && (
+                                <div className="mb-6">
+                                    <div className="flex justify-between text-sm mb-2 font-medium">
+                                        <span className="text-gray-600 dark:text-gray-400">
+                                            Tiến trình lên hạng tiếp theo
+                                        </span>
+                                        <span className="text-primary font-bold">
+                                            {user.tierLevel === 'gold'
+                                                ? 4000
+                                                : user.tierLevel === 'silver'
+                                                  ? 1500
+                                                  : 300}{' '}
+                                            điểm
+                                        </span>
+                                    </div>
+                                    <div className="h-3 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border dark:border-gray-700">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-primary to-[#ff9f43] transition-all duration-1000 ease-out"
+                                            style={{
+                                                width: `${Math.min(100, ((user.rewardsPoint || 0) / (user.tierLevel === 'gold' ? 4000 : user.tierLevel === 'silver' ? 1500 : 300)) * 100)}%`,
+                                            }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-xs text-center mt-2 text-gray-500 italic">
+                                        Cần thêm{' '}
+                                        {Math.max(
+                                            0,
+                                            (user.tierLevel === 'gold'
+                                                ? 4000
+                                                : user.tierLevel === 'silver'
+                                                  ? 1500
+                                                  : 300) -
+                                                (user.rewardsPoint || 0)
+                                        )}{' '}
+                                        điểm nữa để thăng hạng!
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Tier Benefits */}
+                            <div className="mb-6 bg-orange-50 dark:bg-orange-900/10 p-4 rounded-xl border border-orange-100 dark:border-orange-900/30">
+                                <h4 className="text-sm font-bold text-orange-800 dark:text-orange-400 mb-3 flex items-center gap-2">
+                                    <span>🎁</span> Đặc quyền Tier{' '}
+                                    {user.tierLevel?.toUpperCase() || 'BRONZE'}
+                                </h4>
+                                <ul className="text-sm space-y-2 text-orange-900/80 dark:text-orange-300/80">
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-[10px]">●</span>
+                                        Tích điểm x
+                                        {user.tierLevel === 'platinum'
+                                            ? '2.0'
+                                            : user.tierLevel === 'gold'
+                                              ? '1.5'
+                                              : user.tierLevel === 'silver'
+                                                ? '1.2'
+                                                : '1.0'}{' '}
+                                        mỗi đơn hàng
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-[10px]">●</span>
+                                        Đổi điểm trực tiếp thành mã giảm giá
+                                    </li>
+                                    {user.tierLevel === 'platinum' && (
+                                        <li className="flex items-center gap-2 font-bold">
+                                            <span className="text-[10px]">
+                                                ●
+                                            </span>{' '}
+                                            Miễn phí 1 món tráng miệng mỗi lần
+                                            ghé thăm
+                                        </li>
+                                    )}
+                                </ul>
+                            </div>
+
+                            {/* Recent Transactions */}
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3">
+                                    Lịch sử tích điểm
+                                </h4>
+                                {loyaltyLoading ? (
+                                    <div className="flex justify-center py-4">
+                                        <div className="animate-spin h-6 w-6 border-2 border-primary border-b-transparent rounded-full"></div>
+                                    </div>
+                                ) : loyaltyHistory.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {loyaltyHistory.map((tx) => (
+                                            <div
+                                                key={tx._id}
+                                                className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-all"
+                                            >
+                                                <div>
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                                        {tx.description}
+                                                    </p>
+                                                    <p className="text-[11px] text-gray-500 uppercase">
+                                                        {new Date(
+                                                            tx.createdAt
+                                                        ).toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div
+                                                    className={`font-bold ${tx.type === 'earn' ? 'text-green-600' : 'text-red-600'}`}
+                                                >
+                                                    {tx.type === 'earn'
+                                                        ? '+'
+                                                        : '-'}
+                                                    {tx.points}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-sm text-gray-500 py-4 italic">
+                                        Chưa có giao dịch tích điểm nào.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 border-t dark:border-gray-800 text-center">
+                            <button
+                                onClick={() => setShowLoyaltyModal(false)}
+                                className="px-8 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                Đóng
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

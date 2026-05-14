@@ -10,6 +10,7 @@ import forgotPasswordTemplate from '../utils/forgotPasswordTemplate.js';
 import welcomeEmailTemplate from '../utils/welcomeEmailTemplate.js';
 import jwt from 'jsonwebtoken'
 import TableOrderModel from '../models/tableOrder.model.js' // ✅ dùng model nhà hàng thực sự
+import LoyaltyTransactionModel from '../models/loyaltyTransaction.model.js';
 import { OAuth2Client } from 'google-auth-library'
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -617,14 +618,20 @@ export async function userDetails(req, res) {
     try {
         const userId = req.userId
 
-        const user = await UserModel.findById(userId).select('-password -refresh_token')
+        const user = await UserModel.findById(userId).select('-password -refresh_token');
+
+        // Map linkedTableId to tableId for frontend consistency
+        const userData = user.toObject();
+        if (userData.linkedTableId) {
+            userData.tableId = userData.linkedTableId;
+        }
 
         return res.json({
             message: 'Chi tiết người dùng',
-            data: user,
+            data: userData,
             error: false,
             success: true
-        })
+        });
     } catch (error) {
         return res.status(500).json({
             message: 'Có lỗi xảy ra',
@@ -1297,6 +1304,32 @@ export async function hardDeleteAdminUser(req, res) {
             success: true
         });
 
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+}
+
+/**
+ * Get Loyalty Points History
+ */
+export async function getLoyaltyHistory(req, res) {
+    try {
+        const userId = req.userId;
+
+        const history = await LoyaltyTransactionModel.find({ userId })
+            .sort({ createdAt: -1 })
+            .limit(20);
+
+        return res.json({
+            message: "Lịch sử điểm thưởng",
+            data: history,
+            error: false,
+            success: true
+        });
     } catch (error) {
         return res.status(500).json({
             message: error.message || error,

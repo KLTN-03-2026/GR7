@@ -3,7 +3,7 @@ import SummaryApi from "../common/SummaryApi";
 
 const fetchUserDetails = async () => {
     // Kiểm tra token trước khi gọi API
-    const accessToken = localStorage.getItem('accesstoken');
+    const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('accesstoken');
     if (!accessToken) {
         return {
             success: false,

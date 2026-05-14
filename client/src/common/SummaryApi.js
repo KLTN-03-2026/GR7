@@ -25,6 +25,10 @@ const SummaryApi = {
         url: '/api/user/user-points',
         method: 'get'
     },
+    getLoyaltyHistory: {
+        url: '/api/user/loyalty-history',
+        method: 'get'
+    },
     forgot_password: {
         url: '/api/user/forgot-password',
         method: 'put'

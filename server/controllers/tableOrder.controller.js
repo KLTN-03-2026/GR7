@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import Stripe from '../config/stripe.js';
 import BookingModel from '../models/booking.model.js';
 import PaymentModel from '../models/payment.model.js';
+import LoyaltyTransactionModel from '../models/loyaltyTransaction.model.js';
 
 // Add items to table order
 export async function addItemsToTableOrder(request, response) {
@@ -18,11 +19,14 @@ export async function addItemsToTableOrder(request, response) {
         }
 
         const user = await UserModel.findById(userId);
-        if (!user || user.role !== 'TABLE') {
-            return response.status(403).json({ message: 'Chỉ tài khoản bàn mới có thể gọi món', error: true, success: false });
+        if (!user || (user.role !== 'TABLE' && user.role !== 'CUSTOMER')) {
+            return response.status(403).json({ message: 'Bạn không có quyền gọi món tại đây', error: true, success: false });
         }
 
         const tableId = user.linkedTableId;
+        if (!tableId) {
+            return response.status(400).json({ message: 'Tài khoản chưa được liên kết với bàn', error: true, success: false });
+        }
         const actualTableNumber = tableNumber || user.email.split('_')[1]?.split('@')[0]?.toUpperCase();
 
         // Tìm đơn hàng đang hoạt động hoặc đang chờ thanh toán (để khôi phục nếu khách quay lại)
@@ -61,17 +65,23 @@ export async function addItemsToTableOrder(request, response) {
             tableOrder.subTotal += subTotal;
             // Cập nhật lại tổng tiền sau khi áp dụng Voucher/Points cũ (nếu có)
             tableOrder.total = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0) - (tableOrder.pointsDiscount || 0));
-            
+
             // Nếu đơn đang là pending_payment (khách vừa Back từ Stripe), đưa nó về active để gọi thêm món
             tableOrder.status = 'active';
             tableOrder.paymentStatus = 'Chờ xử lý';
             tableOrder.paymentRequest = null;
             tableOrder.stripeSessionId = null;
 
+            // Cập nhật userId nếu khách vừa mới đăng nhập/liên kết tài khoản
+            if (user.role === 'CUSTOMER' && !tableOrder.userId) {
+                tableOrder.userId = userId;
+            }
+
             await tableOrder.save();
         } else {
             tableOrder = await TableOrderModel.create({
                 tableId: tableId,
+                userId: user.role === 'CUSTOMER' ? userId : null,
                 tableNumber: actualTableNumber,
                 items: itemsToAdd,
                 subTotal: subTotal,
@@ -98,8 +108,8 @@ export async function getCurrentTableOrder(request, response) {
     try {
         const userId = request.userId;
         const user = await UserModel.findById(userId);
-        if (!user || user.role !== 'TABLE') {
-            return response.status(403).json({ message: 'Chỉ tài khoản bàn mới có thể xem đơn', error: true, success: false });
+        if (!user || (user.role !== 'TABLE' && user.role !== 'CUSTOMER')) {
+            return response.status(403).json({ message: 'Không có quyền truy cập', error: true, success: false });
         }
 
         const tableOrder = await TableOrderModel.findOne({
@@ -125,8 +135,8 @@ export async function checkoutTableOrder(request, response) {
         const { paymentMethod } = request.body;
 
         const user = await UserModel.findById(userId);
-        if (!user || user.role !== 'TABLE') {
-            return response.status(403).json({ message: 'Chỉ tài khoản bàn mới có thể thanh toán', error: true, success: false });
+        if (!user || (user.role !== 'TABLE' && user.role !== 'CUSTOMER')) {
+            return response.status(403).json({ message: 'Không có quyền thanh toán', error: true, success: false });
         }
 
         const tableOrder = await TableOrderModel.findOne({
@@ -300,7 +310,7 @@ export async function confirmCashierPayment(request, response) {
         tableOrder.paidAt = new Date();
 
         if (tableOrder.userId) {
-            const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, null);
+            const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
             tableOrder.rewardPointsEarned = earned;
         }
 
@@ -368,7 +378,7 @@ export async function handleStripeWebhook(request, response) {
                     tableOrder.paidAt = new Date();
 
                     if (tableOrder.userId) {
-                        await processLoyaltyPoints(tableOrder.userId, tableOrder.total, null);
+                        await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
                     }
 
                     const payment = new PaymentModel({
@@ -467,27 +477,54 @@ export async function removeVoucherFromTableOrder(request, response) {
 }
 
 // Internal Loyalty Points logic
-async function processLoyaltyPoints(userId, totalAmount, session) {
+async function processLoyaltyPoints(userId, totalAmount, orderId, session) {
     if (!userId) return 0;
     const user = await UserModel.findById(userId).session(session);
     if (!user || user.role !== 'CUSTOMER') return 0;
 
-    const earnedPoints = Math.floor(totalAmount / 10000);
+    // Apply Tier Multiplier
+    const multiplier = user.tierBenefits?.pointsMultiplier || 1.0;
+    const basePoints = Math.floor(totalAmount / 10000);
+    const earnedPoints = Math.floor(basePoints * multiplier);
+
     if (earnedPoints <= 0) return 0;
 
-    user.rewardsPoint = (user.rewardsPoint || 0) + earnedPoints;
-    
+    const oldBalance = user.rewardsPoint || 0;
+    user.rewardsPoint = oldBalance + earnedPoints;
+
     // Tier leveling logic (Silver, Gold, Platinum)
     let newTier = 'bronze';
-    if (user.rewardsPoint >= 5000) newTier = 'platinum';
-    else if (user.rewardsPoint >= 2000) newTier = 'gold';
-    else if (user.rewardsPoint >= 500) newTier = 'silver';
-    
+    let newMultiplier = 1.0;
+
+    if (user.rewardsPoint >= 5000) {
+        newTier = 'platinum';
+        newMultiplier = 2.0;
+    } else if (user.rewardsPoint >= 2000) {
+        newTier = 'gold';
+        newMultiplier = 1.5;
+    } else if (user.rewardsPoint >= 500) {
+        newTier = 'silver';
+        newMultiplier = 1.2;
+    }
+
     if (newTier !== user.tierLevel) {
         user.tierLevel = newTier;
+        user.tierBenefits = { pointsMultiplier: newMultiplier };
     }
 
     await user.save({ session });
+
+    // Create Loyalty Transaction
+    const transaction = new LoyaltyTransactionModel({
+        userId,
+        orderId,
+        pointsChange: earnedPoints,
+        type: 'earn',
+        balanceAfter: user.rewardsPoint,
+        description: `Tích điểm từ đơn hàng (Hạng ${user.tierLevel}, x${multiplier})`
+    });
+    await transaction.save({ session });
+
     return earnedPoints;
 }
 
@@ -499,19 +536,33 @@ export async function applyRewardPointsToTableOrder(request, response) {
         const tableOrder = await TableOrderModel.findById(id);
         const user = await UserModel.findById(request.userId);
 
-        if (!user || user.rewardsPoint < pointsToUse) return response.status(400).json({ message: 'Không đủ điểm thưởng' });
+        if (!user || user.rewardsPoint < pointsToUse) {
+            return response.status(400).json({ message: 'Không đủ điểm thưởng' });
+        }
 
         const discount = pointsToUse * 100; // 1 điểm = 100 VNĐ
         const maxDiscountAllowed = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0));
         const actualDiscount = Math.min(discount, maxDiscountAllowed);
 
-        tableOrder.pointsUsed = pointsToUse;
+        // Calculate actual points used based on actual discount (if discount was capped)
+        const actualPointsUsed = Math.ceil(actualDiscount / 100);
+
+        tableOrder.pointsUsed = actualPointsUsed;
         tableOrder.pointsDiscount = actualDiscount;
         tableOrder.total = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0) - actualDiscount);
 
         await tableOrder.save();
-        return response.status(200).json({ success: true, message: 'Áp dụng điểm thưởng thành công' });
+
+        // NOTE: Transaction for redemption will be created when the order is PAID
+        // to avoid issues if the user changes their mind before paying.
+
+        return response.status(200).json({
+            success: true,
+            message: 'Áp dụng điểm thưởng thành công',
+            data: { newTotal: tableOrder.total, pointsUsed: actualPointsUsed }
+        });
     } catch (error) {
         return response.status(500).json({ message: 'Lỗi khi áp dụng điểm' });
     }
 }
+
