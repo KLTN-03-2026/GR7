@@ -165,16 +165,17 @@ const BookingPage = () => {
 
         // ── Deposit check (new logic) ────────────────────────────────────
         // Điều kiện: số khách >= 5 HOẶC có Pre-order → yêu cầu đặt cọc
-        const hasLargeParty    = guests >= 5;
+        const numGuests        = parseInt(formData.numberOfGuests);
+        const hasLargeParty    = numGuests >= 5;
         const hasPreOrderItems = preOrderItems.length > 0;
-        const guestDeposit     = hasLargeParty ? guests * 50000 : 0;
+        const guestDeposit     = hasLargeParty ? numGuests * 50000 : 0;
         const preOrderDeposit  = preOrderTotal; // 100% giá trị món đặt trước
         const totalDeposit     = guestDeposit + preOrderDeposit;
 
         if (hasLargeParty || hasPreOrderItems) {
             const lines = [];
             if (hasLargeParty) {
-                lines.push(`• Phí giữ bàn: ${guestDeposit.toLocaleString('vi-VN')}đ (${guests} người × 50.000đ)`);
+                lines.push(`• Phí giữ bàn: ${guestDeposit.toLocaleString('vi-VN')}đ (${numGuests} người × 50.000đ)`);
             }
             if (hasPreOrderItems) {
                 lines.push(`• Cọc món đặt trước: ${preOrderDeposit.toLocaleString('vi-VN')}đ (100% giá trị món)`);
@@ -193,7 +194,7 @@ const BookingPage = () => {
                 ...SummaryApi.create_booking,
                 data: {
                     ...formData,
-                    numberOfGuests: guests,
+                    numberOfGuests: numGuests,
                     createdBy: 'customer',
                     preOrderItems,
                 },
@@ -311,9 +312,14 @@ const BookingPage = () => {
 
     const filteredMenuProducts = menuProducts.filter((p) => {
         const matchSearch = !menuSearch || p.name?.toLowerCase().includes(menuSearch.toLowerCase());
-        // category có thể là object {_id, name} hoặc string ObjectId → cần toString()
-        const productCatId = (p.category?._id ?? p.category)?.toString() ?? '';
-        const matchCat = menuCategoryFilter === 'all' || productCatId === menuCategoryFilter;
+        
+        // category trong ProductModel là một Mảng [id, id] hoặc [obj, obj]
+        const productCategoryIds = Array.isArray(p.category) 
+            ? p.category.map(cat => (cat?._id ?? cat)?.toString())
+            : [(p.category?._id ?? p.category)?.toString()];
+
+        const matchCat = menuCategoryFilter === 'all' || productCategoryIds.includes(menuCategoryFilter);
+        
         return matchSearch && matchCat;
     });
 
