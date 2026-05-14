@@ -4,6 +4,7 @@ import UserModel from '../models/user.model.js';
 import VoucherModel from '../models/voucher.model.js';
 import mongoose from 'mongoose';
 import Stripe from '../config/stripe.js';
+import BookingModel from '../models/booking.model.js';
 
 // Add items to table order
 export async function addItemsToTableOrder(request, response) {
@@ -572,7 +573,35 @@ export async function handleStripeWebhook(request, response) {
 
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        const { orderType, tableOrderId } = session.metadata || {};
+        const metadata = session.metadata || {};
+
+        // --- CASE 1: Booking Deposit ---
+        if (metadata.type === 'booking_deposit') {
+            const { bookingId } = metadata;
+            console.log('🔔 [Stripe Webhook] Processing booking deposit for ID:', bookingId);
+
+            try {
+                const booking = await BookingModel.findById(bookingId);
+                if (booking) {
+                    booking.depositPaid = true;
+                    booking.depositStatus = 'paid';
+                    booking.depositPaidAt = new Date();
+                    booking.stripeDepositPaymentIntentId = session.payment_intent;
+                    booking.paymentIntentId = session.payment_intent; // Legacy sync
+                    booking.status = 'confirmed'; // Auto confirm on payment
+                    await booking.save();
+                    console.log('✅ [Stripe Webhook] Booking deposit marked as PAID for:', bookingId);
+                } else {
+                    console.warn('⚠️ [Stripe Webhook] Booking not found:', bookingId);
+                }
+            } catch (err) {
+                console.error('[Stripe Webhook] Error updating booking:', err);
+            }
+            return response.status(200).json({ received: true });
+        }
+
+        // --- CASE 2: Dine-in Table Order ---
+        const { orderType, tableOrderId } = metadata;
 
         // Only handle dine-in orders
         if (orderType !== 'dine_in' || !tableOrderId) {

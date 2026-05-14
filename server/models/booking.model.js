@@ -101,6 +101,10 @@ const bookingSchema = new mongoose.Schema({
         enum: ['not_required', 'pending', 'paid', 'refunded'],
         default: 'not_required'
     },
+    depositPaid: { // Backward compatibility for Admin UI
+        type: Boolean,
+        default: false
+    },
     depositPaidAt: {
         type: Date,
         default: null
@@ -111,6 +115,10 @@ const bookingSchema = new mongoose.Schema({
         default: null
     },
     stripeDepositPaymentIntentId: {
+        type: String,
+        default: null
+    },
+    paymentIntentId: { // Alias for stripeDepositPaymentIntentId
         type: String,
         default: null
     }

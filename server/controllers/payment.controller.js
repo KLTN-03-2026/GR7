@@ -3,6 +3,7 @@ import TableOrderModel from '../models/tableOrder.model.js';
 // OrderModel (legacy) đã được xóa — restaurant dùng tableOrderId
 import UserModel from '../models/user.model.js';
 import stripe from '../config/stripe.js';
+import BookingModel from '../models/booking.model.js';
 
 // Helper: Check authorization
 async function checkAuthorization(userId, requiredRoles) {
@@ -216,6 +217,33 @@ export async function handleStripeWebhook(request, response) {
 // Handle checkout.session.completed event
 async function handleCheckoutSessionCompleted(session) {
     try {
+        const metadata = session.metadata;
+
+        // CASE 1: Booking Deposit
+        if (metadata && metadata.type === 'booking_deposit') {
+            const bookingId = metadata.bookingId;
+            console.log('🔔 Processing booking deposit for ID:', bookingId);
+
+            const booking = await BookingModel.findById(bookingId);
+            if (booking) {
+                booking.depositPaid = true;
+                booking.depositStatus = 'paid';
+                booking.depositPaidAt = new Date();
+                booking.stripeDepositPaymentIntentId = session.payment_intent;
+                booking.paymentIntentId = session.payment_intent; // Sync for legacy code
+
+                // Tự động chuyển status sang confirmed nếu đã thanh toán cọc
+                booking.status = 'confirmed';
+
+                await booking.save();
+                console.log('✅ Booking deposit marked as PAID for:', bookingId);
+            } else {
+                console.warn('⚠️ Booking not found for deposit payment:', bookingId);
+            }
+            return; // Xử lý xong cho booking
+        }
+
+        // CASE 2: Regular Table Order (Legacy/Default)
         const payment = await PaymentModel.findById(session.client_reference_id);
         if (!payment) {
             console.warn('Payment not found for session:', session.id);
@@ -241,9 +269,7 @@ async function handleCheckoutSessionCompleted(session) {
             );
         }
 
-        // orderId legacy — đã xóa, restaurant luôn dùng tableOrderId
-
-        console.log('✅ Payment completed for session:', session.id);
+        console.log('✅ Regular payment completed for session:', session.id);
     } catch (error) {
         console.error('Error handling checkout completion:', error);
     }
