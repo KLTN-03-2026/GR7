@@ -82,6 +82,11 @@ export const SupportChatProvider = ({ children }) => {
     // Register socket events
     const registerSocketEvents = useCallback(
         (socket, resolvedName, resolvedUserId) => {
+            console.log(
+                '[SupportChat] Registering socket events for:',
+                resolvedName
+            );
+
             // Clean old listeners
             socket.off('connect');
             socket.off('conversation:created');
@@ -94,26 +99,18 @@ export const SupportChatProvider = ({ children }) => {
             socket.off('reconnect');
 
             const storageKey = getStorageKey(resolvedUserId);
-            const savedConvId = localStorage.getItem(storageKey);
-            if (savedConvId) conversationIdRef.current = savedConvId;
 
-            const doJoin = () => {
-                socket.emit('customer:join', {
-                    conversationId: conversationIdRef.current,
-                    customerName: resolvedName,
-                    customerId: resolvedUserId || null,
-                });
-            };
-
-            socket.on('connect', () => {
+            // Hàm xử lý join/request bên trong connect
+            const handleConnectSync = () => {
                 setConnected(true);
+                const currentConvId =
+                    conversationIdRef.current ||
+                    localStorage.getItem(storageKey);
 
-                if (!conversationIdRef.current) {
-                    console.log('[SupportChat] Creating waiter request:', {
-                        customerName: resolvedName,
-                        customerId: resolvedUserId || null,
-                        tableNumber: null,
-                    });
+                if (!currentConvId) {
+                    console.log(
+                        '[SupportChat] Socket connected - No conversation, requesting waiter...'
+                    );
                     socket.emit('customer:requestWaiter', {
                         customerName: resolvedName,
                         customerId: resolvedUserId || null,
@@ -121,21 +118,31 @@ export const SupportChatProvider = ({ children }) => {
                     });
                 } else {
                     console.log(
-                        '[SupportChat] Rejoining existing conversation:',
-                        conversationIdRef.current
+                        '[SupportChat] Socket connected - Rejoining conversation:',
+                        currentConvId
                     );
-                    doJoin();
+                    socket.emit('customer:join', {
+                        conversationId: currentConvId,
+                        customerName: resolvedName,
+                        customerId: resolvedUserId || null,
+                    });
                 }
-            });
+            };
+
+            socket.on('connect', handleConnectSync);
+
+            // Nếu đã connect rồi mà register lại events, chạy luôn logic sync
+            if (socket.connected) {
+                handleConnectSync();
+            }
 
             socket.on(
                 'conversation:created',
                 ({ conversationId, requestStatus: status, message }) => {
-                    console.log('[SupportChat] Conversation created:', {
-                        conversationId,
-                        status,
-                        message,
-                    });
+                    console.log(
+                        '[SupportChat] Event conversation:created received:',
+                        conversationId
+                    );
                     conversationIdRef.current = conversationId;
                     localStorage.setItem(storageKey, conversationId);
                     setRequestStatus(status);
@@ -152,6 +159,10 @@ export const SupportChatProvider = ({ children }) => {
                     requestStatus: reqStatus,
                     assignedWaiterName: waiterName,
                 }) => {
+                    console.log(
+                        '[SupportChat] Event conversation:joined received:',
+                        conversationId
+                    );
                     conversationIdRef.current = conversationId;
                     localStorage.setItem(storageKey, conversationId);
                     setMessages(history || []);
@@ -179,24 +190,32 @@ export const SupportChatProvider = ({ children }) => {
 
             socket.on('message:new', (msg) => {
                 setMessages((prev) => {
-                    const isDuplicate = prev.some(
-                        (existingMsg) =>
+                    const isDuplicate = prev.some((existingMsg) => {
+                        // 1. Nếu có ID, check ID trước
+                        if (msg._id && existingMsg._id === msg._id) return true;
+
+                        // 2. Fallback: Check nội dung và thời gian (nới lỏng senderRole)
+                        return (
                             existingMsg.text === msg.text &&
-                            existingMsg.senderRole === msg.senderRole &&
                             Math.abs(
                                 new Date(existingMsg.createdAt) -
                                     new Date(msg.createdAt)
-                            ) < 5000
-                    );
+                            ) < 3000 // Giảm xuống 3s cho nhạy
+                        );
+                    });
 
                     if (isDuplicate) {
-                        return prev.map((existingMsg) =>
-                            existingMsg._isOptimistic &&
-                            existingMsg.text === msg.text &&
-                            existingMsg.senderRole === msg.senderRole
+                        return prev.map((existingMsg) => {
+                            // Cập nhật tin nhắn Optimistic bằng tin nhắn thật từ server (có ID)
+                            const isMatch =
+                                (msg._id && existingMsg._id === msg._id) ||
+                                (existingMsg.text === msg.text &&
+                                    existingMsg._isOptimistic);
+
+                            return isMatch
                                 ? { ...msg, _isOptimistic: false }
-                                : existingMsg
-                        );
+                                : existingMsg;
+                        });
                     }
 
                     return [...prev, msg];
@@ -217,7 +236,21 @@ export const SupportChatProvider = ({ children }) => {
 
             socket.on('conversation:closed', () => setIsClosed(true));
             socket.on('disconnect', () => setConnected(false));
-            socket.on('reconnect', () => doJoin());
+            socket.on('reconnect', () => {
+                console.log(
+                    '[SupportChat] Socket reconnected, re-triggering join...'
+                );
+                const currentConvId =
+                    conversationIdRef.current ||
+                    localStorage.getItem(storageKey);
+                if (currentConvId) {
+                    socket.emit('customer:join', {
+                        conversationId: currentConvId,
+                        customerName: resolvedName,
+                        customerId: resolvedUserId || null,
+                    });
+                }
+            });
         },
         []
     );
@@ -225,55 +258,14 @@ export const SupportChatProvider = ({ children }) => {
     // Connect and join function
     const connectAndJoin = useCallback(
         (name, userId) => {
-            console.log('[SupportChat] connectAndJoin called with:', {
-                name,
-                userId,
-            });
+            console.log('[SupportChat] connectAndJoin initiated for:', name);
             const socket = getSocket();
             socketRef.current = socket;
 
             registerSocketEvents(socket, name, userId);
 
             if (!socket.connected) {
-                console.log(
-                    '[SupportChat] Socket not connected, connecting...'
-                );
                 socket.connect();
-            } else {
-                console.log('[SupportChat] Socket already connected');
-                setConnected(true);
-
-                const storageKey = getStorageKey(userId);
-                const savedConvId = localStorage.getItem(storageKey);
-                console.log(
-                    '[SupportChat] Saved conversationId from storage:',
-                    savedConvId
-                );
-
-                if (savedConvId) {
-                    conversationIdRef.current = savedConvId;
-                }
-
-                if (!conversationIdRef.current) {
-                    console.log(
-                        '[SupportChat] No existing conversation, creating new request'
-                    );
-                    socket.emit('customer:requestWaiter', {
-                        customerName: name,
-                        customerId: userId || null,
-                        tableNumber: null,
-                    });
-                } else {
-                    console.log(
-                        '[SupportChat] Rejoining existing conversation:',
-                        conversationIdRef.current
-                    );
-                    socket.emit('customer:join', {
-                        conversationId: conversationIdRef.current,
-                        customerName: name,
-                        customerId: userId || null,
-                    });
-                }
             }
         },
         [registerSocketEvents]
@@ -601,27 +593,66 @@ export const SupportChatProvider = ({ children }) => {
     // Send message
     const sendMessage = useCallback(
         (text) => {
-            if (!text.trim() || isClosed || !socketRef.current?.connected)
-                return;
+            if (!text.trim() || isClosed) return;
 
+            const socket = socketRef.current;
+            if (!socket || !socket.connected) {
+                console.warn(
+                    '[SupportChat] Socket not connected, trying to reconnect...'
+                );
+                initializeConnection();
+                return;
+            }
+
+            const name = user?._id
+                ? user.name || 'Khách'
+                : guestName || 'Khách';
+            const userId = user?._id || null;
+
+            // Nếu CHƯA có conversationId (lỗi auto-request hoặc do user gõ tin nhắn đầu tiên)
+            if (!conversationIdRef.current) {
+                console.log(
+                    '[SupportChat] No conversationId, forcing requestWaiter before sending message'
+                );
+                socket.emit('customer:requestWaiter', {
+                    customerName: name,
+                    customerId: userId,
+                    tableNumber: null,
+                });
+
+                // Lắng nghe sự kiện created để gửi tin nhắn ngay sau đó
+                socket.once('conversation:created', ({ conversationId }) => {
+                    console.log(
+                        '[SupportChat] Conversation created for pending message:',
+                        conversationId
+                    );
+                    socket.emit('customer:message', {
+                        conversationId: conversationId,
+                        text: text.trim(),
+                        senderName: name,
+                    });
+                });
+            } else {
+                // Đã có conversationId, gửi bình thường
+                socket.emit('customer:message', {
+                    conversationId: conversationIdRef.current,
+                    text: text.trim(),
+                    senderName: name,
+                });
+            }
+
+            // Optimistic update để UI hiện ngay lập tức
             const optimisticMsg = {
-                sender: socketRef.current.id,
-                senderName: user?.name || guestName || 'Khách',
+                sender: socket.id,
+                senderName: name,
                 senderRole: 'customer',
                 text: text.trim(),
                 createdAt: new Date(),
                 _isOptimistic: true,
             };
-
             setMessages((prev) => [...prev, optimisticMsg]);
-
-            socketRef.current.emit('customer:message', {
-                conversationId: conversationIdRef.current,
-                text: text.trim(),
-                senderName: user?.name || guestName || 'Khách',
-            });
         },
-        [user, guestName, isClosed]
+        [user, guestName, isClosed, initializeConnection]
     );
 
     // Start new chat

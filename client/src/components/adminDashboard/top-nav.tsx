@@ -51,30 +51,48 @@ export function TopNav() {
                         </Link>
                     )}
                     <ThemeToggle />
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                    {user?._id ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    className="relative h-8 w-8 rounded-full"
+                                >
+                                    <Avatar className="h-8 w-8">
+                                        {user?.avatar ? (
+                                            <AvatarImage
+                                                src={user.avatar}
+                                                alt={user.name || 'User'}
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <AvatarImage
+                                                src={defaultAvatar}
+                                                alt="Default"
+                                                className="object-cover"
+                                            />
+                                        )}
+                                        <AvatarFallback>
+                                            {getInitials(user?.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="mr-4">
+                                <UserMenu close={() => {}} />
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <Link to="/login">
                             <Button
-                                variant="ghost"
-                                className="relative h-8 w-8 rounded-full"
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full border-[#C96048] text-[#C96048] hover:bg-[#C96048] hover:text-white"
                             >
-                                <Avatar className="h-8 w-8">
-                                    {user?.avatar ? (
-                                        <AvatarImage
-                                            src={user.avatar || defaultAvatar}
-                                            alt={user.name || 'User'}
-                                            className="object-cover"
-                                        />
-                                    ) : null}
-                                    <AvatarFallback>
-                                        {getInitials(user?.name)}
-                                    </AvatarFallback>
-                                </Avatar>
+                                Đăng nhập
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="mr-4">
-                            <UserMenu close={close} />
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </Link>
+                    )}
                 </div>
             </div>
         </header>

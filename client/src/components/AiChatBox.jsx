@@ -266,11 +266,18 @@ export default function AiChatBox({ isOpen = false, onClose }) {
                                     e.target.style.height = 'auto';
                                     e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                                 }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend();
-                                        e.target.style.height = 'auto'; // Reset height after send
+                                onKeyDownCapture={(e) => {
+                                    if (e.key === 'Enter') {
+                                        // Ngăn chặn tuyệt đối mọi hành vi mặc định và sự kiện lan truyền của phím Enter
+                                        e.stopPropagation();
+                                        
+                                        if (!e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSend();
+                                            e.target.style.height = 'auto';
+                                        }
+                                        // Nếu có Shift+Enter, chúng ta vẫn để sự kiện mặc định (xuống dòng) 
+                                        // nhưng ĐÃ chặn propagation ở trên nên nó sẽ không gây ra navigation ở ngoài.
                                     }
                                 }}
                                 placeholder="Hỏi tôi bất cứ điều gì..."

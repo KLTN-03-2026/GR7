@@ -379,7 +379,7 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                 {(requestStatus === 'assigned' ||
                                     requestStatus === 'active') &&
                                     assignedWaiterName && (
-                                        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                                        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between">
                                             <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                                                 <div className="w-2 h-2 bg-green-500 rounded-full" />
                                                 <p className="text-xs font-medium">
@@ -387,6 +387,13 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                                     trợ bạn
                                                 </p>
                                             </div>
+                                            <button
+                                                onClick={handleNewChat}
+                                                className="text-[10px] bg-green-600/10 hover:bg-green-600/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-md transition-colors font-medium flex items-center gap-1 cursor-pointer"
+                                                title="Kết thúc và bắt đầu chat mới"
+                                            >
+                                                Kết thúc
+                                            </button>
                                         </div>
                                     )}
 
@@ -462,15 +469,17 @@ export default function SupportChatBox({ isOpen = false, onClose }) {
                                                 e.target.style.height = 'auto';
                                                 e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                                             }}
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    e.key === 'Enter' &&
-                                                    !e.shiftKey
-                                                ) {
-                                                    e.preventDefault();
-                                                    handleSend();
-                                                    e.target.style.height =
-                                                        'auto';
+                                            onKeyDownCapture={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    // Ngăn chặn tuyệt đối sự kiện lan ra ngoài
+                                                    e.stopPropagation();
+
+                                                    if (!e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSend();
+                                                        e.target.style.height =
+                                                            'auto';
+                                                    }
                                                 }
                                             }}
                                             placeholder="Nhập tin nhắn..."
