@@ -51,7 +51,7 @@ export async function getAllOrders(request, response) {
         }
 
         const orders = await TableOrderModel.find(query)
-            .populate({ path: 'customerId', select: 'name phone' })
+            .populate({ path: 'userId', select: 'name mobile email' })
             .populate({ path: 'voucherId', select: 'code name discountType discountValue' })
             .sort({ createdAt: -1 });
 

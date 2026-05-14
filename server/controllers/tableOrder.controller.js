@@ -23,6 +23,8 @@ export async function addItemsToTableOrder(request, response) {
             return response.status(403).json({ message: 'Bạn không có quyền gọi món tại đây', error: true, success: false });
         }
 
+        console.log(`[Order Debug] User ID: ${userId}, Role: ${user.role}, Email: ${user.email}`);
+
         const tableId = user.linkedTableId;
         if (!tableId) {
             return response.status(400).json({ message: 'Tài khoản chưa được liên kết với bàn', error: true, success: false });
@@ -72,22 +74,26 @@ export async function addItemsToTableOrder(request, response) {
             tableOrder.paymentRequest = null;
             tableOrder.stripeSessionId = null;
 
-            // Cập nhật userId nếu khách vừa mới đăng nhập/liên kết tài khoản
-            if (user.role === 'CUSTOMER' && !tableOrder.userId) {
+            // Cập nhật userId nếu là tài khoản thực (không phải tài khoản bàn mặc định)
+            const isMember = user.role === 'CUSTOMER' || (user.email && !user.email.includes('table_'));
+            if (isMember) {
                 tableOrder.userId = userId;
             }
 
+            console.log(`[Order Debug] Updating Order ${tableOrder._id}, Assigned User: ${tableOrder.userId}`);
             await tableOrder.save();
         } else {
+            const isMember = user.role === 'CUSTOMER' || (user.email && !user.email.includes('table_'));
             tableOrder = await TableOrderModel.create({
                 tableId: tableId,
-                userId: user.role === 'CUSTOMER' ? userId : null,
+                userId: isMember ? userId : null,
                 tableNumber: actualTableNumber,
                 items: itemsToAdd,
                 subTotal: subTotal,
                 total: subTotal,
                 status: 'active'
             });
+            console.log(`[Order Debug] Created New Order ${tableOrder._id}, Assigned User: ${tableOrder.userId}`);
         }
 
         return response.status(200).json({
@@ -115,7 +121,9 @@ export async function getCurrentTableOrder(request, response) {
         const tableOrder = await TableOrderModel.findOne({
             tableId: user.linkedTableId,
             status: { $in: ['active', 'pending_payment'] }
-        }).populate('items.productId', 'name image');
+        })
+            .populate('items.productId', 'name image')
+            .populate('voucherId', 'code name');
 
         if (!tableOrder) {
             return response.status(200).json({ message: 'Chưa có món nào được gọi', error: false, success: true, data: null });
@@ -310,8 +318,29 @@ export async function confirmCashierPayment(request, response) {
         tableOrder.paidAt = new Date();
 
         if (tableOrder.userId) {
-            const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
-            tableOrder.rewardPointsEarned = earned;
+            const memberUser = await UserModel.findById(tableOrder.userId);
+            if (memberUser) {
+                // 1. Trừ điểm đã dùng (nếu có)
+                if (tableOrder.pointsUsed > 0) {
+                    memberUser.rewardsPoint = Math.max(0, (memberUser.rewardsPoint || 0) - tableOrder.pointsUsed);
+                    await memberUser.save();
+
+                    // Tạo transaction "redeem"
+                    const redeemTx = new LoyaltyTransactionModel({
+                        userId: tableOrder.userId,
+                        orderId: tableOrder._id,
+                        pointsChange: -tableOrder.pointsUsed,
+                        type: 'redeem',
+                        balanceAfter: memberUser.rewardsPoint,
+                        description: `Đổi ${tableOrder.pointsUsed} điểm giảm ${(tableOrder.pointsDiscount || 0).toLocaleString()}đ`
+                    });
+                    await redeemTx.save();
+                }
+
+                // 2. Tích điểm mới (dựa trên số tiền thực tế thanh toán)
+                const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
+                tableOrder.rewardPointsEarned = earned;
+            }
         }
 
         await tableOrder.save();
@@ -378,7 +407,27 @@ export async function handleStripeWebhook(request, response) {
                     tableOrder.paidAt = new Date();
 
                     if (tableOrder.userId) {
-                        await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
+                        const memberUser = await UserModel.findById(tableOrder.userId);
+                        if (memberUser) {
+                            // 1. Trừ điểm đã dùng
+                            if (tableOrder.pointsUsed > 0) {
+                                memberUser.rewardsPoint = Math.max(0, (memberUser.rewardsPoint || 0) - tableOrder.pointsUsed);
+                                await memberUser.save();
+
+                                const redeemTx = new LoyaltyTransactionModel({
+                                    userId: tableOrder.userId,
+                                    orderId: tableOrder._id,
+                                    pointsChange: -tableOrder.pointsUsed,
+                                    type: 'redeem',
+                                    balanceAfter: memberUser.rewardsPoint,
+                                    description: `Đổi ${tableOrder.pointsUsed} điểm giảm ${(tableOrder.pointsDiscount || 0).toLocaleString()}đ`
+                                });
+                                await redeemTx.save();
+                            }
+
+                            // 2. Tích điểm mới
+                            await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
+                        }
                     }
 
                     const payment = new PaymentModel({
@@ -420,6 +469,9 @@ export async function verifyStripeSession(request, response) {
                 status: tableOrder.paymentStatus === 'paid' ? 'paid' : 'pending',
                 tableNumber: tableOrder.tableNumber,
                 total: tableOrder.total,
+                subTotal: tableOrder.subTotal,
+                discount: tableOrder.discount,
+                pointsDiscount: tableOrder.pointsDiscount,
                 items: tableOrder.items
             }
         });
@@ -489,20 +541,21 @@ async function processLoyaltyPoints(userId, totalAmount, orderId, session) {
 
     if (earnedPoints <= 0) return 0;
 
-    const oldBalance = user.rewardsPoint || 0;
-    user.rewardsPoint = oldBalance + earnedPoints;
+    // Cộng vào cả 2 loại điểm
+    user.rewardsPoint = (user.rewardsPoint || 0) + earnedPoints;  // Điểm dùng để đổi thưởng
+    user.tierPoints = (user.tierPoints || 0) + earnedPoints;      // Điểm tích lũy lên hạng (chỉ tăng, không giảm)
 
-    // Tier leveling logic (Silver, Gold, Platinum)
+    // Tier leveling logic — dựa trên tierPoints (lifetime)
     let newTier = 'bronze';
     let newMultiplier = 1.0;
 
-    if (user.rewardsPoint >= 5000) {
-        newTier = 'platinum';
+    if (user.tierPoints >= 4000) {
+        newTier = 'diamond';
         newMultiplier = 2.0;
-    } else if (user.rewardsPoint >= 2000) {
+    } else if (user.tierPoints >= 1500) {
         newTier = 'gold';
         newMultiplier = 1.5;
-    } else if (user.rewardsPoint >= 500) {
+    } else if (user.tierPoints >= 300) {
         newTier = 'silver';
         newMultiplier = 1.2;
     }
@@ -540,16 +593,21 @@ export async function applyRewardPointsToTableOrder(request, response) {
             return response.status(400).json({ message: 'Không đủ điểm thưởng' });
         }
 
-        const discount = pointsToUse * 100; // 1 điểm = 100 VNĐ
-        const maxDiscountAllowed = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0));
-        const actualDiscount = Math.min(discount, maxDiscountAllowed);
+        const POINT_VALUE = 1000; // 1 điểm = 1000 VNĐ
+        const potentialDiscount = pointsToUse * POINT_VALUE;
 
-        // Calculate actual points used based on actual discount (if discount was capped)
-        const actualPointsUsed = Math.ceil(actualDiscount / 100);
+        // Giới hạn giảm giá tối đa 50% subTotal (hoặc subTotal - voucher discount)
+        const currentSubTotalAfterVoucher = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0));
+        const maxDiscountByPercent = Math.floor(currentSubTotalAfterVoucher * 0.5); // 50% cap
+        
+        const actualDiscount = Math.min(potentialDiscount, maxDiscountByPercent);
+
+        // Tính lại số điểm thực tế bị trừ dựa trên số tiền được giảm thực tế
+        const actualPointsUsed = Math.ceil(actualDiscount / POINT_VALUE);
 
         tableOrder.pointsUsed = actualPointsUsed;
         tableOrder.pointsDiscount = actualDiscount;
-        tableOrder.total = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0) - actualDiscount);
+        tableOrder.total = Math.max(0, currentSubTotalAfterVoucher - actualDiscount);
 
         await tableOrder.save();
 
@@ -563,6 +621,24 @@ export async function applyRewardPointsToTableOrder(request, response) {
         });
     } catch (error) {
         return response.status(500).json({ message: 'Lỗi khi áp dụng điểm' });
+    }
+}
+
+// Cancel Reward Points
+export async function cancelRewardPoints(request, response) {
+    try {
+        const { id } = request.params;
+        const tableOrder = await TableOrderModel.findById(id);
+        if (!tableOrder) return response.status(404).json({ message: 'Không tìm thấy đơn' });
+
+        tableOrder.pointsUsed = 0;
+        tableOrder.pointsDiscount = 0;
+        tableOrder.total = Math.max(0, tableOrder.subTotal - (tableOrder.discount || 0));
+        await tableOrder.save();
+
+        return response.status(200).json({ success: true, message: 'Đã hủy dùng điểm thưởng' });
+    } catch (error) {
+        return response.status(500).json({ message: 'Lỗi server' });
     }
 }
 

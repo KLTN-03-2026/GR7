@@ -231,13 +231,17 @@ const InvoicesTab = () => {
                     ];
                 }
 
-                // Ư u tiên: (1) tên đăng ký từ Customer loyalty
-                //            (2) số điện thoại (nếu chỉ check-in bằng số đt)
-                //            (3) fallback rõ ràng theo bàn
+                // Ưu tiên: (1) tên từ userId (thành viên đã đăng nhập/đăng ký)
+                //          (2) tên từ customerId (Customer profile cũ)
+                //          (3) fallback rõ ràng theo bàn
+                const memberName = ob.userId?.name?.trim();
+                const memberPhone = ob.userId?.mobile?.trim();
                 const custName = ob.customerId?.name?.trim();
                 const custPhone = ob.customerId?.phone?.trim();
                 const customerName =
+                    memberName ||
                     custName ||
+                    (memberPhone ? `Khách ${memberPhone}` : null) ||
                     (custPhone ? `Khách ${custPhone}` : null) ||
                     (tableNum !== 'Mang đi/Khác'
                         ? `Bàn ${tableNum} – Khách vãng lai`
@@ -252,8 +256,11 @@ const InvoicesTab = () => {
                     payment_status: ob.payment_status || 'Chờ xử lý',
                     createdAt: ob.createdAt,
                     customerName,
-                    customerPhone: custPhone || '',
+                    customerPhone: memberPhone || custPhone || '',
                     totalAmt: ob.totalAmt || 0,
+                    subTotal: ob.subTotal || 0,
+                    discount: ob.discount || 0,
+                    pointsDiscount: ob.pointsDiscount || 0,
                     items: items,
                 };
             })
@@ -808,13 +815,50 @@ const InvoicesTab = () => {
                                     </div>
                                 ))}
                             </div>
-                            <div className="flex justify-between items-center bg-muted/50 p-4 rounded-lg border">
-                                <span className="font-bold text-lg">
-                                    Tổng tiền thanh toán
-                                </span>
-                                <span className="font-bold text-2xl text-green-600">
-                                    {DisplayPriceInVND(selectedOrder.totalAmt)}
-                                </span>
+                            <div className="bg-muted/30 p-4 rounded-lg border mb-4 space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">
+                                        Tạm tính
+                                    </span>
+                                    <span className="font-semibold">
+                                        {DisplayPriceInVND(
+                                            selectedOrder.subTotal ||
+                                                selectedOrder.totalAmt
+                                        )}
+                                    </span>
+                                </div>
+                                {selectedOrder.discount > 0 && (
+                                    <div className="flex justify-between text-sm text-green-600">
+                                        <span>Giảm giá (Voucher)</span>
+                                        <span>
+                                            -
+                                            {DisplayPriceInVND(
+                                                selectedOrder.discount
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                {selectedOrder.pointsDiscount > 0 && (
+                                    <div className="flex justify-between text-sm text-blue-600">
+                                        <span>Giảm giá (Điểm)</span>
+                                        <span>
+                                            -
+                                            {DisplayPriceInVND(
+                                                selectedOrder.pointsDiscount
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center pt-2 border-t">
+                                    <span className="font-bold text-lg">
+                                        Tổng cộng
+                                    </span>
+                                    <span className="font-bold text-2xl text-green-600">
+                                        {DisplayPriceInVND(
+                                            selectedOrder.totalAmt
+                                        )}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div className="p-4 border-t flex justify-end gap-3 bg-muted/20">

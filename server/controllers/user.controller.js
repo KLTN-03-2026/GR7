@@ -617,8 +617,34 @@ export async function refreshTokenController(req, res) {
 export async function userDetails(req, res) {
     try {
         const userId = req.userId
-
         const user = await UserModel.findById(userId).select('-password -refresh_token');
+        if (!user) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng", error: true, success: false });
+        }
+
+        // --- SAFETY TIER CHECK ---
+        if (user.role === 'CUSTOMER') {
+            let currentTier = 'bronze';
+            let currentMultiplier = 1.0;
+            const points = user.tierPoints || 0;
+
+            if (points >= 4000) {
+                currentTier = 'diamond';
+                currentMultiplier = 2.0;
+            } else if (points >= 1500) {
+                currentTier = 'gold';
+                currentMultiplier = 1.5;
+            } else if (points >= 300) {
+                currentTier = 'silver';
+                currentMultiplier = 1.2;
+            }
+
+            if (currentTier !== user.tierLevel) {
+                user.tierLevel = currentTier;
+                user.tierBenefits = { pointsMultiplier: currentMultiplier };
+                await user.save();
+            }
+        }
 
         // Map linkedTableId to tableId for frontend consistency
         const userData = user.toObject();

@@ -237,6 +237,7 @@ async function finalizeCustomerTableLogin(user, tableId, response) {
                 mobile: user.mobile,
                 role: user.role,
                 rewardsPoint: user.rewardsPoint,
+                tierPoints: user.tierPoints,
                 tierLevel: user.tierLevel,
                 tableId: table._id,
                 tableNumber: table.tableNumber

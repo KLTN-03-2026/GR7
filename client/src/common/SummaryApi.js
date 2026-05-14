@@ -451,6 +451,14 @@ const SummaryApi = {
         url: '/api/table-order/:id/apply-reward-points',
         method: 'patch'
     },
+    apply_reward_points: {
+        url: '/api/table-order/:id/apply-reward-points',
+        method: 'patch'
+    },
+    cancel_reward_points: {
+        url: '/api/table-order/:id/cancel-reward-points',
+        method: 'post'
+    },
 
     // Service Requests (Gọi phục vụ)
     call_waiter: {

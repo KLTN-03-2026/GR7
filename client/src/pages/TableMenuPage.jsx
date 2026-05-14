@@ -78,6 +78,9 @@ const TableMenuPage = () => {
     const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
     const [loyaltyHistory, setLoyaltyHistory] = useState([]);
     const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+    const [pointsToRedeem, setPointsToRedeem] = useState('');
+    const [pointsDiscount, setPointsDiscount] = useState(0);
+    const [pointsLoading, setPointsLoading] = useState(false);
 
     const fetchLoyaltyHistory = async () => {
         try {
@@ -93,6 +96,27 @@ const TableMenuPage = () => {
         }
     };
 
+    const fetchUser = async () => {
+        try {
+            const response = await Axios({
+                ...SummaryApi.userDetails,
+            });
+            if (response.data.success) {
+                dispatch(setUserDetails(response.data.data));
+            }
+        } catch (error) {
+            console.error('Lỗi khi lấy thông tin user:', error);
+        }
+    };
+
+    // Auto refresh user data when loyalty modal opens
+    useEffect(() => {
+        if (showLoyaltyModal) {
+            fetchUser();
+            fetchLoyaltyHistory();
+        }
+    }, [showLoyaltyModal]);
+
     const fetchCurrentOrder = useCallback(async () => {
         try {
             const response = await Axios({
@@ -101,8 +125,16 @@ const TableMenuPage = () => {
             if (response.data.success) {
                 const order = response.data.data;
                 setCurrentOrder(order);
-                // Reset voucher state when order refreshes
-                setAppliedVoucher(null);
+                // Khôi phục trạng thái voucher từ đơn hàng nếu có
+                if (order.discount > 0 && order.voucherId) {
+                    setAppliedVoucher({
+                        code: order.voucherId?.code || '',
+                        name: order.voucherId?.name || '',
+                        discountAmount: order.discount,
+                    });
+                } else {
+                    setAppliedVoucher(null);
+                }
                 setVoucherCode('');
                 setVoucherError('');
                 return order; // PB29: return so callers can chain fetchAvailableVouchers
@@ -138,6 +170,56 @@ const TableMenuPage = () => {
         return () => s.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const handleApplyPoints = async () => {
+        if (!pointsToRedeem || isNaN(pointsToRedeem) || pointsToRedeem <= 0)
+            return;
+        try {
+            setPointsLoading(true);
+            const response = await Axios({
+                ...SummaryApi.apply_reward_points,
+                data: { pointsToUse: Number(pointsToRedeem) },
+                url: SummaryApi.apply_reward_points.url.replace(
+                    ':id',
+                    currentOrder?._id
+                ),
+            });
+            if (response.data.success) {
+                toast.success(response.data.message);
+                fetchCurrentOrder();
+                fetchUser(); // Cập nhật lại số điểm của user trong store
+            }
+        } catch (error) {
+            toast.error(
+                error.response?.data?.message || 'Lỗi khi áp dụng điểm'
+            );
+        } finally {
+            setPointsLoading(false);
+        }
+    };
+
+    const handleCancelPoints = async () => {
+        try {
+            setPointsLoading(true);
+            const response = await Axios({
+                ...SummaryApi.cancel_reward_points,
+                url: SummaryApi.cancel_reward_points.url.replace(
+                    ':id',
+                    currentOrder?._id
+                ),
+            });
+            if (response.data.success) {
+                toast.success('Đã hủy dùng điểm thưởng');
+                setPointsToRedeem('');
+                fetchCurrentOrder();
+                fetchUser();
+            }
+        } catch (error) {
+            toast.error('Lỗi khi hủy dùng điểm');
+        } finally {
+            setPointsLoading(false);
+        }
+    };
 
     // Check if user is a table account
     useEffect(() => {
@@ -557,14 +639,14 @@ const TableMenuPage = () => {
                                         className="text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
                                         style={{
                                             background:
-                                                user.tierLevel === 'platinum'
-                                                    ? 'linear-gradient(135deg, #e5e4e2, #b0b0b0)'
+                                                user.tierLevel === 'diamond'
+                                                    ? 'linear-gradient(135deg, rgb(0 81 139), rgb(0 180 189))'
                                                     : user.tierLevel === 'gold'
-                                                      ? 'linear-gradient(135deg, #ffd700, #daa520)'
+                                                      ? 'linear-gradient(135deg, rgb(255 126 16), rgb(255 243 0))'
                                                       : user.tierLevel ===
                                                           'silver'
-                                                        ? 'linear-gradient(135deg, #c0c0c0, #a0a0a0)'
-                                                        : 'linear-gradient(135deg, #cd7f32, #a0522d)',
+                                                        ? 'linear-gradient(135deg, rgb(191 191 191), rgb(80 80 80))'
+                                                        : 'linear-gradient(135deg, rgb(255 138 20), rgb(155 53 0))',
                                             color:
                                                 user.tierLevel === 'gold'
                                                     ? '#5c4300'
@@ -1594,6 +1676,189 @@ const TableMenuPage = () => {
                                     )}
                                 </div>
 
+                                {/* ── REWARD POINTS REDEMPTION ── */}
+                                {user?.role === 'CUSTOMER' &&
+                                    user.rewardsPoint > 0 && (
+                                        <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-xl border border-orange-200 dark:border-orange-800/30 mb-4 mt-2">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl">
+                                                        ⭐
+                                                    </span>
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-orange-800 dark:text-orange-300">
+                                                            Dùng điểm thưởng
+                                                        </h4>
+                                                        <p className="text-[10px] text-orange-600 dark:text-orange-400">
+                                                            1đ = 1.000đ (Tối đa
+                                                            50%)
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-bold bg-orange-100 dark:bg-orange-800 px-2 py-1 rounded text-orange-700 dark:text-orange-200">
+                                                    Bạn có: {user.rewardsPoint}đ
+                                                </span>
+                                            </div>
+
+                                            {currentOrder?.pointsUsed > 0 ? (
+                                                <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-2 rounded-lg border border-orange-200">
+                                                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                                                        Đang dùng:{' '}
+                                                        <b>
+                                                            {
+                                                                currentOrder.pointsUsed
+                                                            }
+                                                            đ
+                                                        </b>
+                                                    </span>
+                                                    <button
+                                                        onClick={
+                                                            handleCancelPoints
+                                                        }
+                                                        className="text-xs text-red-500 font-bold hover:underline"
+                                                    >
+                                                        Hủy dùng
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {(() => {
+                                                        const pointsBalance =
+                                                            user?.rewardsPoint ||
+                                                            0;
+                                                        const subTotal =
+                                                            currentOrder?.subTotal ||
+                                                            0;
+                                                        // Chỉ trừ đi discount nếu nó thực sự đã được áp dụng vào đơn hàng (currentOrder.discount)
+                                                        const actualOrderDiscount =
+                                                            currentOrder?.discount ||
+                                                            0;
+                                                        const maxDiscountPossible =
+                                                            Math.floor(
+                                                                (subTotal -
+                                                                    actualOrderDiscount) *
+                                                                    0.5
+                                                            );
+                                                        const maxPointsPossible =
+                                                            Math.floor(
+                                                                maxDiscountPossible /
+                                                                    1000
+                                                            );
+                                                        const finalMax =
+                                                            Math.min(
+                                                                pointsBalance,
+                                                                maxPointsPossible
+                                                            );
+
+                                                        return (
+                                                            <>
+                                                                <div className="flex gap-2">
+                                                                    <div className="relative flex-1">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={
+                                                                                pointsToRedeem
+                                                                            }
+                                                                            max={
+                                                                                finalMax
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) => {
+                                                                                let val =
+                                                                                    e
+                                                                                        .target
+                                                                                        .value ===
+                                                                                    ''
+                                                                                        ? ''
+                                                                                        : parseInt(
+                                                                                              e
+                                                                                                  .target
+                                                                                                  .value
+                                                                                          );
+                                                                                if (
+                                                                                    val >
+                                                                                    finalMax
+                                                                                )
+                                                                                    val =
+                                                                                        finalMax;
+                                                                                if (
+                                                                                    val <
+                                                                                    0
+                                                                                )
+                                                                                    val = 0;
+                                                                                setPointsToRedeem(
+                                                                                    val
+                                                                                );
+                                                                            }}
+                                                                            placeholder={`Tối đa ${finalMax}đ`}
+                                                                            className="w-full px-3 py-2 border border-orange-200 rounded-lg text-sm focus:ring-1 focus:ring-orange-400 bg-white dark:bg-gray-900 pr-10"
+                                                                        />
+                                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-400">
+                                                                            ĐIỂM
+                                                                        </span>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={
+                                                                            handleApplyPoints
+                                                                        }
+                                                                        disabled={
+                                                                            pointsLoading ||
+                                                                            !pointsToRedeem ||
+                                                                            pointsToRedeem <=
+                                                                                0
+                                                                        }
+                                                                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                                                    >
+                                                                        Dùng
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="px-1">
+                                                                    <input
+                                                                        type="range"
+                                                                        min="0"
+                                                                        max={
+                                                                            finalMax
+                                                                        }
+                                                                        step="1"
+                                                                        value={
+                                                                            pointsToRedeem ||
+                                                                            0
+                                                                        }
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            setPointsToRedeem(
+                                                                                parseInt(
+                                                                                    e
+                                                                                        .target
+                                                                                        .value
+                                                                                )
+                                                                            )
+                                                                        }
+                                                                        className="w-full h-1.5 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                                                                    />
+                                                                    <div className="flex justify-between mt-1">
+                                                                        <span className="text-[10px] text-orange-400">
+                                                                            0đ
+                                                                        </span>
+                                                                        <span className="text-[10px] font-bold text-orange-600">
+                                                                            {
+                                                                                finalMax
+                                                                            }
+                                                                            đ
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                 {/* Summary */}
                                 <div className="space-y-1 pt-2 border-t border-border">
                                     <div className="flex justify-between text-sm text-muted-foreground">
@@ -1609,12 +1874,25 @@ const TableMenuPage = () => {
                                     </div>
                                     {appliedVoucher && (
                                         <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                                            <span>Giảm giá:</span>
+                                            <span>Giảm giá (Voucher):</span>
                                             <span>
                                                 -
                                                 {appliedVoucher.discountAmount.toLocaleString(
                                                     'vi-VN'
                                                 )}
+                                                đ
+                                            </span>
+                                        </div>
+                                    )}
+                                    {currentOrder?.pointsDiscount > 0 && (
+                                        <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
+                                            <span>Giảm giá (Điểm):</span>
+                                            <span>
+                                                -
+                                                {(
+                                                    currentOrder.pointsDiscount ||
+                                                    0
+                                                ).toLocaleString('vi-VN')}
                                                 đ
                                             </span>
                                         </div>
@@ -1625,11 +1903,7 @@ const TableMenuPage = () => {
                                         </span>
                                         <span className="text-blue-600 dark:text-blue-400">
                                             {(
-                                                (currentOrder.subTotal ||
-                                                    currentOrder.total ||
-                                                    0) -
-                                                (appliedVoucher?.discountAmount ||
-                                                    0)
+                                                currentOrder.total || 0
                                             ).toLocaleString('vi-VN')}
                                             đ
                                         </span>
@@ -1707,13 +1981,13 @@ const TableMenuPage = () => {
                                 className="p-5 rounded-xl text-white mb-6 shadow-lg relative overflow-hidden"
                                 style={{
                                     background:
-                                        user.tierLevel === 'platinum'
-                                            ? 'linear-gradient(135deg, #e5e4e2, #7f8c8d)'
+                                        user.tierLevel === 'diamond'
+                                            ? 'linear-gradient(135deg, rgb(0, 57, 95), rgb(97 185 227), rgb(8 24 32))'
                                             : user.tierLevel === 'gold'
-                                              ? 'linear-gradient(135deg, #f1c40f, #f39c12)'
+                                              ? 'linear-gradient(135deg, rgb(211 175 0), rgb(62 45 16))'
                                               : user.tierLevel === 'silver'
-                                                ? 'linear-gradient(135deg, #bdc3c7, #95a5a6)'
-                                                : 'linear-gradient(135deg, #e67e22, #d35400)',
+                                                ? 'linear-gradient(135deg, rgb(169 169 169), rgb(55 55 55))'
+                                                : 'linear-gradient(135deg, rgb(255 123 77), rgb(71 28 0))',
                                 }}
                             >
                                 <div className="relative z-10">
@@ -1722,17 +1996,24 @@ const TableMenuPage = () => {
                                             Hạng hiện tại
                                         </span>
                                         <span className="text-4xl md:text-3xl">
-                                            🏆
+                                            {user.tierLevel === 'diamond'
+                                                ? '💎'
+                                                : '🏆'}
                                         </span>
                                     </div>
                                     <h3 className="text-3xl md:text-2xl font-black uppercase mb-1">
-                                        {user.tierLevel || 'BRONZE'}
+                                        {user.tierLevel === 'diamond'
+                                            ? 'DIAMOND'
+                                            : user.tierLevel || 'BRONZE'}
                                     </h3>
                                     <div className="text-2xl md:text-xl font-bold flex items-baseline gap-1">
                                         {user.rewardsPoint || 0}{' '}
                                         <span className="text-sm font-normal opacity-80 uppercase">
-                                            điểm
+                                            điểm hiện có
                                         </span>
+                                    </div>
+                                    <div className="text-sm font-medium opacity-70 mt-1">
+                                        🏅 Tích lũy: {user.tierPoints || 0} điểm
                                     </div>
                                 </div>
                                 {/* Subtle pattern */}
@@ -1742,11 +2023,16 @@ const TableMenuPage = () => {
                             </div>
 
                             {/* Progress to Next Tier */}
-                            {user.tierLevel !== 'platinum' && (
+                            {user.tierLevel !== 'diamond' && (
                                 <div className="mb-6">
                                     <div className="flex justify-between text-sm mb-2 font-medium">
                                         <span className="text-gray-600 dark:text-gray-400">
-                                            Tiến trình lên hạng tiếp theo
+                                            Tiến trình thăng hạng{' '}
+                                            {user.tierLevel === 'silver'
+                                                ? 'Vàng'
+                                                : user.tierLevel === 'gold'
+                                                  ? 'Kim cương'
+                                                  : 'Bạc'}
                                         </span>
                                         <span className="text-primary font-bold">
                                             {user.tierLevel === 'gold'
@@ -1761,22 +2047,62 @@ const TableMenuPage = () => {
                                         <div
                                             className="h-full bg-gradient-to-r from-primary to-[#ff9f43] transition-all duration-1000 ease-out"
                                             style={{
-                                                width: `${Math.min(100, ((user.rewardsPoint || 0) / (user.tierLevel === 'gold' ? 4000 : user.tierLevel === 'silver' ? 1500 : 300)) * 100)}%`,
+                                                width: `${(() => {
+                                                    const points =
+                                                        user.tierPoints || 0;
+                                                    if (
+                                                        user.tierLevel ===
+                                                        'gold'
+                                                    ) {
+                                                        const range =
+                                                            4000 - 1500;
+                                                        const progress =
+                                                            points - 1500;
+                                                        return Math.min(
+                                                            100,
+                                                            Math.max(
+                                                                0,
+                                                                (progress /
+                                                                    range) *
+                                                                    100
+                                                            )
+                                                        );
+                                                    } else if (
+                                                        user.tierLevel ===
+                                                        'silver'
+                                                    ) {
+                                                        const range =
+                                                            1500 - 300;
+                                                        const progress =
+                                                            points - 300;
+                                                        return Math.min(
+                                                            100,
+                                                            Math.max(
+                                                                0,
+                                                                (progress /
+                                                                    range) *
+                                                                    100
+                                                            )
+                                                        );
+                                                    } else {
+                                                        return Math.min(
+                                                            100,
+                                                            (points / 300) * 100
+                                                        );
+                                                    }
+                                                })()}%`,
                                             }}
                                         ></div>
                                     </div>
                                     <p className="text-xs text-center mt-2 text-gray-500 italic">
-                                        Cần thêm{' '}
-                                        {Math.max(
-                                            0,
-                                            (user.tierLevel === 'gold'
-                                                ? 4000
-                                                : user.tierLevel === 'silver'
-                                                  ? 1500
-                                                  : 300) -
-                                                (user.rewardsPoint || 0)
-                                        )}{' '}
-                                        điểm nữa để thăng hạng!
+                                        {(user.tierPoints || 0) >=
+                                        (user.tierLevel === 'gold'
+                                            ? 4000
+                                            : user.tierLevel === 'silver'
+                                              ? 1500
+                                              : 300)
+                                            ? 'Chúc mừng! Bạn đã đủ điều kiện lên hạng mới.'
+                                            : `Cần thêm ${Math.max(0, (user.tierLevel === 'gold' ? 4000 : user.tierLevel === 'silver' ? 1500 : 300) - (user.tierPoints || 0))} điểm tích lũy nữa để thăng hạng!`}
                                     </p>
                                 </div>
                             )}

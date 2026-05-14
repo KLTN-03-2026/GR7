@@ -166,7 +166,10 @@ const router = createBrowserRouter([
                     { path: 'address', element: <AddressPage /> },
 
                     // === HR PAGES ===
-                    { path: 'employee-management', element: <EmployeeManagementPage /> },
+                    {
+                        path: 'employee-management',
+                        element: <EmployeeManagementPage />,
+                    },
 
                     // === STAFF BOARDS ===
                     {

@@ -108,10 +108,35 @@ function OnlineBillPreviewModal({
                     ))}
                 </div>
 
-                {/* Total */}
-                <div className="px-5 pb-2">
+                {/* Total Breakdown */}
+                <div className="px-5 pb-3 pt-2 space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Tạm tính:</span>
+                        <span>
+                            {(tableOrder.subTotal || 0).toLocaleString('vi-VN')}đ
+                        </span>
+                    </div>
+                    {tableOrder.discount > 0 && (
+                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                            <span>Giảm giá (Voucher):</span>
+                            <span>
+                                -{tableOrder.discount.toLocaleString('vi-VN')}đ
+                            </span>
+                        </div>
+                    )}
+                    {tableOrder.pointsDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
+                            <span>Giảm giá (Điểm):</span>
+                            <span>
+                                -{tableOrder.pointsDiscount.toLocaleString(
+                                    'vi-VN'
+                                )}
+                                đ
+                            </span>
+                        </div>
+                    )}
                     <div
-                        className="flex justify-between items-center rounded-xl px-4 py-3"
+                        className="flex justify-between items-center rounded-xl px-4 py-3 mt-2"
                         style={{
                             background: 'rgba(59, 130, 246, 0.1)',
                             border: '1px solid rgba(59, 130, 246, 0.3)',
@@ -526,16 +551,43 @@ const TableOrderManagementPage = () => {
                     </div>
                 </div>
 
-                {/* Total */}
                 <div
-                    className="rounded-xl shadow-sm p-6 md:p-5"
+                    className="rounded-xl shadow-sm p-6 md:p-5 space-y-2"
                     style={{
                         background: 'rgba(var(--card-rgb, 255, 255, 255), 0.7)',
                         backdropFilter: 'blur(12px)',
                         border: '1px solid rgba(var(--border-rgb, 200, 200, 200), 0.3)',
                     }}
                 >
-                    <div className="flex justify-between items-center text-2xl md:text-xl font-bold">
+                    <div className="flex justify-between text-base md:text-sm text-muted-foreground">
+                        <span>Tạm tính:</span>
+                        <span>
+                            {(tableOrder.subTotal || 0).toLocaleString('vi-VN')}đ
+                        </span>
+                    </div>
+
+                    {tableOrder.discount > 0 && (
+                        <div className="flex justify-between text-base md:text-sm text-green-600 dark:text-green-400">
+                            <span>Giảm giá (Voucher):</span>
+                            <span>
+                                -{tableOrder.discount.toLocaleString('vi-VN')}đ
+                            </span>
+                        </div>
+                    )}
+
+                    {tableOrder.pointsDiscount > 0 && (
+                        <div className="flex justify-between text-base md:text-sm text-blue-600 dark:text-blue-400">
+                            <span>Giảm giá (Điểm):</span>
+                            <span>
+                                -{tableOrder.pointsDiscount.toLocaleString(
+                                    'vi-VN'
+                                )}
+                                đ
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="flex justify-between items-center text-2xl md:text-xl font-bold pt-2 border-t border-border">
                         <span className="text-foreground">Tổng cộng:</span>
                         <span style={{ color: '#C96048' }}>
                             {tableOrder.total.toLocaleString('vi-VN')}đ

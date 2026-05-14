@@ -5,8 +5,17 @@ import Axios from '../utils/Axios';
 import SummaryApi from '../common/SummaryApi';
 import toast from 'react-hot-toast';
 import {
-    FiRefreshCw, FiWifi, FiWifiOff, FiMaximize, FiMinimize,
-    FiPrinter, FiCheckCircle, FiClock, FiDollarSign, FiTag, FiX
+    FiRefreshCw,
+    FiWifi,
+    FiWifiOff,
+    FiMaximize,
+    FiMinimize,
+    FiPrinter,
+    FiCheckCircle,
+    FiClock,
+    FiDollarSign,
+    FiTag,
+    FiX,
 } from 'react-icons/fi';
 import { MdOutlinePayment, MdTableRestaurant } from 'react-icons/md';
 import { BsBellFill } from 'react-icons/bs';
@@ -19,9 +28,9 @@ const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
 // ──────────────────────────────────────────────────────
 // VietQR config – BIDV account
 // ──────────────────────────────────────────────────────
-const VIETQR_BANK   = 'BIDV';
-const VIETQR_ACCT   = '6331102124';
-const VIETQR_NAME   = 'NGO KIM HOANG NAM';
+const VIETQR_BANK = 'BIDV';
+const VIETQR_ACCT = '6331102124';
+const VIETQR_NAME = 'NGO KIM HOANG NAM';
 
 function buildVietQRUrl(amount, description) {
     const desc = encodeURIComponent(description);
@@ -41,16 +50,21 @@ function printBill(order) {
     const desc = `Thanh toan ban ${order.tableNumber} EatEase`;
     const qrUrl = buildVietQRUrl(total, desc);
 
-    const rows = items.map(item =>
-        `<tr>
+    const rows = items
+        .map(
+            (item) =>
+                `<tr>
             <td style="padding:4px 8px">${item.name}</td>
             <td style="padding:4px 8px;text-align:center">x${item.quantity}</td>
             <td style="padding:4px 8px;text-align:right">${(item.price * item.quantity).toLocaleString('vi-VN')}đ</td>
-        </tr>`).join('');
+        </tr>`
+        )
+        .join('');
 
-    const discountRow = discount > 0
-        ? `<tr><td colspan="2" style="padding:4px 8px;color:#16a34a">Giảm giá:</td><td style="padding:4px 8px;text-align:right;color:#16a34a">-${discount.toLocaleString('vi-VN')}đ</td></tr>`
-        : '';
+    const discountRow =
+        discount > 0
+            ? `<tr><td colspan="2" style="padding:4px 8px;color:#16a34a">Giảm giá:</td><td style="padding:4px 8px;text-align:right;color:#16a34a">-${discount.toLocaleString('vi-VN')}đ</td></tr>`
+            : '';
 
     const html = `<!DOCTYPE html><html><head>
         <meta charset="utf-8"/>
@@ -100,7 +114,10 @@ function printBill(order) {
         </body></html>`;
 
     const win = window.open('', '_blank', 'width=400,height=700');
-    if (!win) { toast.error('Vui lòng cho phép popup để in hóa đơn.'); return; }
+    if (!win) {
+        toast.error('Vui lòng cho phép popup để in hóa đơn.');
+        return;
+    }
     win.document.write(html);
     win.document.close();
     win.focus();
@@ -118,21 +135,10 @@ const CashierDashboard = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [confirming, setConfirming] = useState(false);
-    
-    // Payment calculator states
-    const [voucherCode, setVoucherCode] = useState('');
-    const [customerPaid, setCustomerPaid] = useState('');
-    // PB29 – Voucher state
-    const [appliedVoucher, setAppliedVoucher] = useState(null); 
-    const [voucherLoading, setVoucherLoading] = useState(false);
-    const [voucherError, setVoucherError] = useState('');
 
-    // Loyalty / Reward Points state
-    const [pointsToUse, setPointsToUse] = useState('');
-    const [pointsLoading, setPointsLoading] = useState(false);
-    const [pointsError, setPointsError] = useState('');
-    const [appliedPoints, setAppliedPoints] = useState(null); // { pointsUsed, discountAmount }
-    
+    // Payment calculator states
+    const [customerPaid, setCustomerPaid] = useState('');
+
     const socketRef = useRef(null);
 
     useEffect(() => {
@@ -142,12 +148,16 @@ const CashierDashboard = () => {
 
     useEffect(() => {
         document.body.style.overflow = isExpanded ? 'hidden' : 'unset';
-        return () => { document.body.style.overflow = 'unset'; };
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isExpanded]);
 
     const fetchOrders = useCallback(async () => {
         try {
-            const res = await Axios({ ...SummaryApi.get_cashier_pending_orders });
+            const res = await Axios({
+                ...SummaryApi.get_cashier_pending_orders,
+            });
             if (res.data?.success) setOrders(res.data.data || []);
         } catch {
             toast.error('Không thể tải danh sách thanh toán.');
@@ -180,81 +190,6 @@ const CashierDashboard = () => {
         return () => s.disconnect();
     }, [fetchOrders]);
 
-    // PB29 – Apply voucher
-    const handleApplyVoucher = async () => {
-        if (!selectedOrder || !voucherCode.trim()) return;
-        setVoucherLoading(true);
-        setVoucherError('');
-        try {
-            const url = SummaryApi.apply_voucher_to_table_order.url.replace(':id', selectedOrder._id);
-            const res = await Axios({
-                url,
-                method: SummaryApi.apply_voucher_to_table_order.method,
-                data: { voucherCode: voucherCode.trim() },
-            });
-            if (res.data?.success) {
-                const d = res.data.data;
-                setAppliedVoucher(d);
-                // Cập nhật local state order để UI tính tiền thừa đúng
-                setSelectedOrder(prev => ({ ...prev, total: d.newTotal, discount: d.discountAmount }));
-                toast.success(`Áp dụng "${d.voucherCode}" thành công! Giảm ${d.discountAmount.toLocaleString('vi-VN')}đ`);
-            } else {
-                setVoucherError(res.data?.message || 'Không áp dụng được.');
-            }
-        } catch (err) {
-            const msg = err?.response?.data?.message || 'Lỗi khi áp dụng mã giảm giá.';
-            setVoucherError(msg);
-        } finally {
-            setVoucherLoading(false);
-        }
-    };
-
-    // PB29 – Remove voucher
-    const handleRemoveVoucher = async () => {
-        if (!selectedOrder) return;
-        setVoucherLoading(true);
-        try {
-            const url = SummaryApi.remove_voucher_from_table_order.url.replace(':id', selectedOrder._id);
-            await Axios({ url, method: SummaryApi.remove_voucher_from_table_order.method });
-            setAppliedVoucher(null);
-            setVoucherCode('');
-            setVoucherError('');
-            setSelectedOrder(prev => ({ ...prev, total: prev.subTotal || prev.total, discount: 0 }));
-            toast.success('Đã hủy mã giảm giá.');
-        } catch {
-            toast.error('Không thể hủy mã giảm giá.');
-        } finally {
-            setVoucherLoading(false);
-        }
-    };
-
-    // PB29 – Apply reward points
-    const handleApplyPoints = async () => {
-        if (!selectedOrder || !pointsToUse) return;
-        setPointsLoading(true);
-        setPointsError('');
-        try {
-            const url = SummaryApi.apply_reward_points_to_table_order.url.replace(':id', selectedOrder._id);
-            const res = await Axios({
-                url,
-                method: SummaryApi.apply_reward_points_to_table_order.method,
-                data: { pointsToUse: parseInt(pointsToUse) },
-            });
-            if (res.data?.success) {
-                const d = res.data.data;
-                setAppliedPoints({ pointsUsed: d.pointsUsed, discountAmount: d.pointsDiscount });
-                // Cập nhật local state order
-                setSelectedOrder(prev => ({ ...prev, total: d.total, pointsDiscount: d.pointsDiscount, pointsUsed: d.pointsUsed }));
-                toast.success(`Đã đổi ${d.pointsUsed} điểm! Giảm ${d.pointsDiscount.toLocaleString('vi-VN')}đ`);
-            } else {
-                setPointsError(res.data?.message || 'Không đổi điểm được.');
-            }
-        } catch (err) {
-            setPointsError(err?.response?.data?.message || 'Lỗi khi quy đổi điểm.');
-        } finally {
-            setPointsLoading(false);
-        }
-    };
 
     const handleConfirmPayment = async () => {
         if (!selectedOrder) return;
@@ -265,20 +200,19 @@ const CashierDashboard = () => {
                 data: { tableOrderId: selectedOrder._id },
             });
             if (res.data?.success) {
-                toast.success('Thanh toán thành công. Đơn hàng đã được hoàn tất.', { duration: 4000 });
+                toast.success(
+                    'Thanh toán thành công. Đơn hàng đã được hoàn tất.',
+                    { duration: 4000 }
+                );
                 setSelectedOrder(null);
-                setAppliedVoucher(null);
-                setAppliedPoints(null);
-                setVoucherCode('');
-                setPointsToUse('');
-                setVoucherError('');
-                setPointsError('');
                 fetchOrders();
             } else {
                 toast.error(res.data?.message || 'Lỗi xác nhận thanh toán.');
             }
         } catch (err) {
-            toast.error(err?.response?.data?.message || 'Lỗi xác nhận thanh toán.');
+            toast.error(
+                err?.response?.data?.message || 'Lỗi xác nhận thanh toán.'
+            );
         } finally {
             setConfirming(false);
         }
@@ -287,11 +221,16 @@ const CashierDashboard = () => {
     const totalPending = orders.reduce((s, o) => s + (o.total || 0), 0);
 
     return (
-        <div className={`min-h-screen bg-background text-foreground transition-all duration-300 ${
-            isExpanded ? 'fixed inset-0 z-[9999] overflow-y-auto w-full h-full' : 'relative'
-        }`}>
+        <div
+            className={`min-h-screen bg-background text-foreground transition-all duration-300 ${
+                isExpanded
+                    ? 'fixed inset-0 z-[9999] overflow-y-auto w-full h-full'
+                    : 'relative'
+            }`}
+        >
             {/* ── Header ── */}
-            <div className="border-b border-border px-4 py-3 sticky top-0 z-10 shadow-sm"
+            <div
+                className="border-b border-border px-4 py-3 sticky top-0 z-10 shadow-sm"
                 style={{
                     background: 'rgba(var(--card-rgb), 0.95)',
                     backdropFilter: 'blur(12px)',
@@ -299,19 +238,27 @@ const CashierDashboard = () => {
             >
                 <div className="w-full flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center"
                             style={{
-                                background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                background:
+                                    'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                             }}
                         >
                             <MdOutlinePayment className="text-white text-xl" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold leading-none">Cashier Dashboard</h1>
+                            <h1 className="text-xl font-bold leading-none">
+                                Cashier Dashboard
+                            </h1>
                             <p className="text-muted-foreground text-xs mt-0.5">
                                 {clock.toLocaleString('vi-VN', {
-                                    hour: '2-digit', minute: '2-digit', second: '2-digit',
-                                    weekday: 'short', day: '2-digit', month: '2-digit'
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    weekday: 'short',
+                                    day: '2-digit',
+                                    month: '2-digit',
                                 })}
                                 {user?.name && ` — ${user.name}`}
                             </p>
@@ -321,35 +268,59 @@ const CashierDashboard = () => {
                     <div className="hidden sm:flex items-center gap-4">
                         <div className="text-center">
                             <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <CreditCard className="w-5 h-5" style={{ color: '#C96048' }} />
-                                <p className="text-2xl font-bold" style={{ color: '#C96048' }}>{orders.length}</p>
+                                <CreditCard
+                                    className="w-5 h-5"
+                                    style={{ color: '#C96048' }}
+                                />
+                                <p
+                                    className="text-2xl font-bold"
+                                    style={{ color: '#C96048' }}
+                                >
+                                    {orders.length}
+                                </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">Chờ thu tiền</p>
+                            <p className="text-xs text-muted-foreground">
+                                Chờ thu tiền
+                            </p>
                         </div>
                         <div className="h-8 w-px bg-border" />
                         <div className="text-center">
                             <div className="flex items-center justify-center gap-1.5 mb-1">
                                 <Wallet className="w-5 h-5 text-green-500 dark:text-green-400" />
-                                <p className="text-lg font-bold text-green-500 dark:text-green-400">{totalPending.toLocaleString('vi-VN')}đ</p>
+                                <p className="text-lg font-bold text-green-500 dark:text-green-400">
+                                    {totalPending.toLocaleString('vi-VN')}đ
+                                </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">Tổng cần thu</p>
+                            <p className="text-xs text-muted-foreground">
+                                Tổng cần thu
+                            </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
-                            connected 
-                                ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' 
-                                : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                        }`}>
-                            {connected ? <FiWifi size={12} /> : <FiWifiOff size={12} />}
+                        <div
+                            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                                connected
+                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                                    : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                            }`}
+                        >
+                            {connected ? (
+                                <FiWifi size={12} />
+                            ) : (
+                                <FiWifiOff size={12} />
+                            )}
                             {connected ? 'Real-time' : 'Offline'}
                         </div>
                         <button
-                            onClick={() => setIsExpanded(p => !p)}
+                            onClick={() => setIsExpanded((p) => !p)}
                             className="flex items-center justify-center bg-card hover:bg-accent border border-border w-10 h-10 rounded-xl transition text-foreground active:scale-95"
                         >
-                            {isExpanded ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
+                            {isExpanded ? (
+                                <FiMinimize size={18} />
+                            ) : (
+                                <FiMaximize size={18} />
+                            )}
                         </button>
                         <button
                             onClick={fetchOrders}
@@ -365,51 +336,66 @@ const CashierDashboard = () => {
             <div className="p-4">
                 {loading ? (
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 mr-3" style={{ borderColor: '#C96048' }} />
+                        <div
+                            className="animate-spin rounded-full h-10 w-10 border-b-2 mr-3"
+                            style={{ borderColor: '#C96048' }}
+                        />
                         Đang tải...
                     </div>
                 ) : orders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
                         <FiDollarSign className="text-6xl text-green-500" />
-                        <p className="text-xl font-semibold text-foreground">Không có đơn nào chờ thanh toán 🎉</p>
+                        <p className="text-xl font-semibold text-foreground">
+                            Không có đơn nào chờ thanh toán 🎉
+                        </p>
                         <p className="text-sm">Tất cả đơn hàng đã được xử lý</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* LEFT COLUMN: Danh sách hóa đơn chờ thanh toán */}
                         <div className="lg:col-span-1">
-                            <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#C96048' }}>
-                                <MdOutlinePayment className="w-6 h-6" /> Hóa đơn chờ thanh toán
-                                <span className="text-sm font-normal text-muted-foreground">({orders.length})</span>
+                            <h2
+                                className="text-lg font-bold mb-3 flex items-center gap-2"
+                                style={{ color: '#C96048' }}
+                            >
+                                <MdOutlinePayment className="w-6 h-6" /> Hóa đơn
+                                chờ thanh toán
+                                <span className="text-sm font-normal text-muted-foreground">
+                                    ({orders.length})
+                                </span>
                             </h2>
-                            
-                            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+
+                            <div
+                                className="space-y-3 overflow-y-auto pr-2 custom-scrollbar"
+                                style={{ maxHeight: 'calc(100vh - 220px)' }}
+                            >
                                 {orders.map((order) => {
                                     const itemCount = order.items?.length || 0;
                                     const waitMins = order.checkedOutAt
-                                        ? Math.floor((Date.now() - new Date(order.checkedOutAt)) / 60000)
+                                        ? Math.floor(
+                                              (Date.now() -
+                                                  new Date(
+                                                      order.checkedOutAt
+                                                  )) /
+                                                  60000
+                                          )
                                         : null;
-                                    const isSelected = selectedOrder?._id === order._id;
-                                    
+                                    const isSelected =
+                                        selectedOrder?._id === order._id;
+
                                     return (
-                                        <div 
-                                            key={order._id} 
+                                        <div
+                                            key={order._id}
                                             onClick={() => {
                                                 setSelectedOrder(order);
-                                                setAppliedVoucher(null);
-                                                setAppliedPoints(null);
-                                                setVoucherCode('');
-                                                setPointsToUse('');
-                                                setVoucherError('');
-                                                setPointsError('');
                                             }}
                                             className={`rounded-xl overflow-hidden border transition-all cursor-pointer active:scale-[0.99] ${
-                                                isSelected 
-                                                    ? 'border-[#C96048] shadow-lg' 
+                                                isSelected
+                                                    ? 'border-[#C96048] shadow-lg'
                                                     : 'border-border hover:shadow-md'
                                             }`}
                                             style={{
-                                                background: isSelected 
+                                                background: isSelected
                                                     ? 'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)'
                                                     : 'rgba(var(--card-rgb), 0.98)',
                                                 backdropFilter: 'blur(12px)',
@@ -418,25 +404,45 @@ const CashierDashboard = () => {
                                             {/* Card header */}
                                             <div className="px-4 py-3 flex items-center justify-between border-b border-border">
                                                 <div className="flex items-center gap-2">
-                                                    <MdTableRestaurant className="text-lg" style={{ color: '#C96048' }} />
-                                                    <h3 className="font-bold" style={{ color: '#C96048' }}>Bàn {order.tableNumber}</h3>
+                                                    <MdTableRestaurant
+                                                        className="text-lg"
+                                                        style={{
+                                                            color: '#C96048',
+                                                        }}
+                                                    />
+                                                    <h3
+                                                        className="font-bold"
+                                                        style={{
+                                                            color: '#C96048',
+                                                        }}
+                                                    >
+                                                        Bàn {order.tableNumber}
+                                                    </h3>
                                                 </div>
                                                 {waitMins !== null && (
-                                                    <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
-                                                        waitMins > 10 
-                                                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' 
-                                                            : 'bg-accent text-muted-foreground'
-                                                    }`}>
-                                                        <FiClock size={10} /> {waitMins}p
+                                                    <span
+                                                        className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                                                            waitMins > 10
+                                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                                                : 'bg-accent text-muted-foreground'
+                                                        }`}
+                                                    >
+                                                        <FiClock size={10} />{' '}
+                                                        {waitMins}p
                                                     </span>
                                                 )}
                                             </div>
 
                                             {/* Info */}
                                             <div className="px-4 py-3">
-                                                <p className="text-muted-foreground text-xs">{itemCount} món</p>
+                                                <p className="text-muted-foreground text-xs">
+                                                    {itemCount} món
+                                                </p>
                                                 <p className="text-xl font-bold text-foreground mt-0.5">
-                                                    {(order.total || 0).toLocaleString('vi-VN')}đ
+                                                    {(
+                                                        order.total || 0
+                                                    ).toLocaleString('vi-VN')}
+                                                    đ
                                                 </p>
                                             </div>
                                         </div>
@@ -450,49 +456,92 @@ const CashierDashboard = () => {
                             {!selectedOrder ? (
                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 border-2 border-dashed border-border rounded-2xl p-8">
                                     <MdOutlinePayment className="text-6xl opacity-30" />
-                                    <p className="text-lg font-semibold text-foreground">Chọn hóa đơn để xem chi tiết</p>
-                                    <p className="text-sm">Click vào hóa đơn bên trái để bắt đầu thanh toán</p>
+                                    <p className="text-lg font-semibold text-foreground">
+                                        Chọn hóa đơn để xem chi tiết
+                                    </p>
+                                    <p className="text-sm">
+                                        Click vào hóa đơn bên trái để bắt đầu
+                                        thanh toán
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {/* Chi tiết đơn hàng */}
-                                    <div className="rounded-2xl border border-border overflow-hidden"
+                                    <div
+                                        className="rounded-2xl border border-border overflow-hidden"
                                         style={{
-                                            background: 'rgba(var(--card-rgb), 0.98)',
+                                            background:
+                                                'rgba(var(--card-rgb), 0.98)',
                                             backdropFilter: 'blur(12px)',
                                         }}
                                     >
-                                        <div className="px-5 py-4 border-b border-border"
+                                        <div
+                                            className="px-5 py-4 border-b border-border"
                                             style={{
-                                                background: 'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
+                                                background:
+                                                    'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
                                             }}
                                         >
-                                            <h3 className="text-lg font-bold" style={{ color: '#C96048' }}>
-                                                Chi tiết đơn hàng - Bàn {selectedOrder.tableNumber}
+                                            <h3
+                                                className="text-lg font-bold"
+                                                style={{ color: '#C96048' }}
+                                            >
+                                                Chi tiết đơn hàng - Bàn{' '}
+                                                {selectedOrder.tableNumber}
                                             </h3>
                                             <p className="text-xs text-muted-foreground mt-0.5">
-                                                {selectedOrder.items?.length || 0} món đã gọi
+                                                {selectedOrder.items?.length ||
+                                                    0}{' '}
+                                                món đã gọi
                                             </p>
                                         </div>
 
                                         {/* Items table */}
                                         <div className="p-5">
                                             <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                                                {(selectedOrder.items || []).map((item, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between gap-4 bg-accent/30 rounded-lg px-4 py-3 border border-border">
+                                                {(
+                                                    selectedOrder.items || []
+                                                ).map((item, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="flex items-center justify-between gap-4 bg-accent/30 rounded-lg px-4 py-3 border border-border"
+                                                    >
                                                         <div className="flex-1">
-                                                            <p className="font-semibold text-foreground">{item.name}</p>
+                                                            <p className="font-semibold text-foreground">
+                                                                {item.name}
+                                                            </p>
                                                             {item.note && (
-                                                                <p className="text-xs mt-1 text-muted-foreground">📝 {item.note}</p>
+                                                                <p className="text-xs mt-1 text-muted-foreground">
+                                                                    📝{' '}
+                                                                    {item.note}
+                                                                </p>
                                                             )}
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-sm text-muted-foreground">x{item.quantity}</p>
-                                                            <p className="text-sm font-medium text-foreground">{item.price.toLocaleString('vi-VN')}đ</p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                x{item.quantity}
+                                                            </p>
+                                                            <p className="text-sm font-medium text-foreground">
+                                                                {item.price.toLocaleString(
+                                                                    'vi-VN'
+                                                                )}
+                                                                đ
+                                                            </p>
                                                         </div>
                                                         <div className="text-right min-w-[80px]">
-                                                            <p className="font-bold" style={{ color: '#C96048' }}>
-                                                                {(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                                                            <p
+                                                                className="font-bold"
+                                                                style={{
+                                                                    color: '#C96048',
+                                                                }}
+                                                            >
+                                                                {(
+                                                                    item.price *
+                                                                    item.quantity
+                                                                ).toLocaleString(
+                                                                    'vi-VN'
+                                                                )}
+                                                                đ
                                                             </p>
                                                         </div>
                                                     </div>
@@ -502,198 +551,221 @@ const CashierDashboard = () => {
                                     </div>
 
                                     {/* Tóm tắt thanh toán */}
-                                    <div className="rounded-2xl border border-border overflow-hidden"
+                                    <div
+                                        className="rounded-2xl border border-border overflow-hidden"
                                         style={{
-                                            background: 'rgba(var(--card-rgb), 0.98)',
+                                            background:
+                                                'rgba(var(--card-rgb), 0.98)',
                                             backdropFilter: 'blur(12px)',
                                         }}
                                     >
-                                        <div className="px-5 py-4 border-b border-border"
+                                        <div
+                                            className="px-5 py-4 border-b border-border"
                                             style={{
-                                                background: 'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
+                                                background:
+                                                    'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
                                             }}
                                         >
-                                            <h3 className="text-lg font-bold" style={{ color: '#C96048' }}>Tóm tắt thanh toán</h3>
+                                            <h3
+                                                className="text-lg font-bold"
+                                                style={{ color: '#C96048' }}
+                                            >
+                                                Tóm tắt thanh toán
+                                            </h3>
                                         </div>
 
                                         <div className="p-5 space-y-4">
-                                            {/* PB29 – Voucher section */}
-                                            <div>
-                                                <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
-                                                    <FiTag size={14} style={{ color: '#C96048' }} /> Mã giảm giá
-                                                </label>
-
-                                                {appliedVoucher ? (
-                                                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border"
-                                                        style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.35)' }}>
+                                            {/* Voucher - Read only */}
+                                            {selectedOrder.discount > 0 && (
+                                                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border"
+                                                    style={{
+                                                        background: 'rgba(34,197,94,0.08)',
+                                                        borderColor: 'rgba(34,197,94,0.35)',
+                                                    }}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <FiTag size={14} className="text-green-600" />
                                                         <div>
                                                             <p className="font-bold text-green-600 dark:text-green-400 text-sm">
-                                                                ✅ {appliedVoucher.voucherCode}
+                                                                Mã giảm giá đã áp dụng
                                                             </p>
                                                             <p className="text-xs text-green-700 dark:text-green-300">
-                                                                {appliedVoucher.voucherName} – Giảm {appliedVoucher.discountAmount.toLocaleString('vi-VN')}đ
+                                                                Giảm {(selectedOrder.discount || 0).toLocaleString('vi-VN')}đ
                                                             </p>
                                                         </div>
-                                                        <button onClick={handleRemoveVoucher} disabled={voucherLoading}
-                                                            className="text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition active:scale-95">
-                                                            <FiX size={16} />
-                                                        </button>
                                                     </div>
-                                                ) : (
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={voucherCode}
-                                                            onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(''); }}
-                                                            onKeyDown={(e) => e.key === 'Enter' && handleApplyVoucher()}
-                                                            placeholder="Nhập mã giảm giá..."
-                                                            className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-background text-foreground uppercase"
-                                                        />
-                                                        <button
-                                                            onClick={handleApplyVoucher}
-                                                            disabled={voucherLoading || !voucherCode.trim()}
-                                                            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition text-white disabled:opacity-50 active:scale-95"
-                                                            style={{ background: 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)' }}
-                                                        >
-                                                            {voucherLoading ? '...' : 'Áp dụng'}
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                </div>
+                                            )}
 
-                                                {voucherError && (
-                                                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                                                        <FiX size={12} /> {voucherError}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {/* Loyalty Points section */}
-                                            <div>
-                                                <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
-                                                    <FiDollarSign size={14} className="text-amber-500" /> Điểm thưởng thành viên
-                                                </label>
-
-                                                {appliedPoints ? (
-                                                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-amber-50/50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
+                                            {/* Điểm thưởng - Read only */}
+                                            {selectedOrder.pointsUsed > 0 && (
+                                                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-amber-50/50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
+                                                    <div className="flex items-center gap-2">
+                                                        <FiDollarSign size={14} className="text-amber-500" />
                                                         <div>
                                                             <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">
-                                                                ✨ Đã dùng {appliedPoints.pointsUsed} điểm
+                                                                ✨ Đã dùng {selectedOrder.pointsUsed} điểm
                                                             </p>
                                                             <p className="text-xs text-amber-700 dark:text-amber-300">
-                                                                Giảm giá trực tiếp {appliedPoints.discountAmount.toLocaleString('vi-VN')}đ
+                                                                Giảm {(selectedOrder.pointsDiscount || 0).toLocaleString('vi-VN')}đ
                                                             </p>
                                                         </div>
-                                                        <button onClick={() => {
-                                                            setAppliedPoints(null);
-                                                            setSelectedOrder(prev => ({ ...prev, total: (prev.total || 0) + appliedPoints.discountAmount, pointsDiscount: 0, pointsUsed: 0 }));
-                                                        }}
-                                                        className="text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                                                            <FiX size={16} />
-                                                        </button>
                                                     </div>
-                                                ) : (
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="number"
-                                                            value={pointsToUse}
-                                                            onChange={(e) => { setPointsToUse(e.target.value); setPointsError(''); }}
-                                                            placeholder="Số điểm muốn dùng..."
-                                                            className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-background text-foreground"
-                                                        />
-                                                        <button
-                                                            onClick={handleApplyPoints}
-                                                            disabled={pointsLoading || !pointsToUse}
-                                                            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 active:scale-95 shadow-sm"
-                                                        >
-                                                            {pointsLoading ? '...' : 'Đổi điểm'}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                {pointsError && (
-                                                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
-                                                        <FiX size={12} /> {pointsError}
-                                                    </p>
-                                                )}
-                                            </div>
+                                                </div>
+                                            )}
 
                                             {/* Total summary */}
                                             <div className="space-y-2 pt-3 border-t border-border">
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Tạm tính:</span>
+                                                    <span className="text-muted-foreground">
+                                                        Tạm tính:
+                                                    </span>
                                                     <span className="font-medium text-foreground">
-                                                        {(selectedOrder.subTotal || selectedOrder.total || 0).toLocaleString('vi-VN')}đ
+                                                        {(
+                                                            selectedOrder.subTotal ||
+                                                            selectedOrder.total ||
+                                                            0
+                                                        ).toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                        đ
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Giảm mã Voucher:</span>
+                                                    <span className="text-muted-foreground">
+                                                        Giảm mã Voucher:
+                                                    </span>
                                                     <span className="font-medium text-green-600 dark:text-green-400">
-                                                        -{(appliedVoucher?.discountAmount || selectedOrder.discount || 0).toLocaleString('vi-VN')}đ
+                                                        -
+                                                        {(
+                                                            selectedOrder.discount ||
+                                                            0
+                                                        ).toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                        đ
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">Giảm điểm thưởng:</span>
+                                                    <span className="text-muted-foreground">
+                                                        Giảm điểm thưởng:
+                                                    </span>
                                                     <span className="font-medium text-amber-600 dark:text-amber-400">
-                                                        -{(appliedPoints?.discountAmount || selectedOrder.pointsDiscount || 0).toLocaleString('vi-VN')}đ
+                                                        -
+                                                        {(
+                                                            selectedOrder.pointsDiscount ||
+                                                            0
+                                                        ).toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                        đ
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center pt-2 border-t border-border">
-                                                    <span className="text-lg font-bold text-foreground">Tổng cộng:</span>
-                                                    <span className="text-2xl font-bold" style={{ color: '#C96048' }}>
-                                                        {(selectedOrder.total || 0).toLocaleString('vi-VN')}đ
+                                                    <span className="text-lg font-bold text-foreground">
+                                                        Tổng cộng:
+                                                    </span>
+                                                    <span
+                                                        className="text-2xl font-bold"
+                                                        style={{
+                                                            color: '#C96048',
+                                                        }}
+                                                    >
+                                                        {(
+                                                            selectedOrder.total ||
+                                                            0
+                                                        ).toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                        đ
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Payment calculator */}
                                             <div className="pt-4 border-t border-border space-y-3">
-                                                <h4 className="font-semibold text-foreground">Hỗ trợ tính tiền</h4>
-                                                
+                                                <h4 className="font-semibold text-foreground">
+                                                    Hỗ trợ tính tiền
+                                                </h4>
+
                                                 <div>
-                                                    <label className="text-sm font-medium text-foreground mb-2 block">Tiền khách đưa</label>
+                                                    <label className="text-sm font-medium text-foreground mb-2 block">
+                                                        Tiền khách đưa
+                                                    </label>
                                                     <input
                                                         type="number"
                                                         value={customerPaid}
-                                                        onChange={(e) => setCustomerPaid(e.target.value)}
+                                                        onChange={(e) =>
+                                                            setCustomerPaid(
+                                                                e.target.value
+                                                            )
+                                                        }
                                                         placeholder="Nhập số tiền..."
                                                         className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-background text-foreground text-lg font-semibold"
                                                     />
                                                 </div>
 
-                                                {customerPaid && parseFloat(customerPaid) >= (selectedOrder.total || 0) && (
-                                                    <div className="rounded-xl p-4"
-                                                        style={{
-                                                            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)',
-                                                            border: '1px solid rgba(34, 197, 94, 0.3)',
-                                                        }}
-                                                    >
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-sm font-medium text-green-700 dark:text-green-400">Tiền thừa trả khách:</span>
-                                                            <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                                                {(parseFloat(customerPaid) - (selectedOrder.total || 0)).toLocaleString('vi-VN')}đ
-                                                            </span>
+                                                {customerPaid &&
+                                                    parseFloat(customerPaid) >=
+                                                        (selectedOrder.total ||
+                                                            0) && (
+                                                        <div
+                                                            className="rounded-xl p-4"
+                                                            style={{
+                                                                background:
+                                                                    'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)',
+                                                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                                                            }}
+                                                        >
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                                                                    Tiền thừa
+                                                                    trả khách:
+                                                                </span>
+                                                                <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                                                    {(
+                                                                        parseFloat(
+                                                                            customerPaid
+                                                                        ) -
+                                                                        (selectedOrder.total ||
+                                                                            0)
+                                                                    ).toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}
+                                                                    đ
+                                                                </span>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
                                             </div>
 
                                             {/* Action buttons */}
                                             <div className="flex gap-3 pt-4">
                                                 <button
-                                                    onClick={() => printBill(selectedOrder)}
+                                                    onClick={() =>
+                                                        printBill(selectedOrder)
+                                                    }
                                                     className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent/80 text-foreground py-3 rounded-xl font-semibold transition border border-border active:scale-95"
                                                 >
-                                                    <FiPrinter size={18} /> In hóa đơn
+                                                    <FiPrinter size={18} /> In
+                                                    hóa đơn
                                                 </button>
                                                 <button
-                                                    onClick={handleConfirmPayment}
+                                                    onClick={
+                                                        handleConfirmPayment
+                                                    }
                                                     disabled={confirming}
                                                     className="flex-1 flex items-center justify-center gap-2 text-white py-3 rounded-xl font-bold transition disabled:opacity-60 active:scale-95"
                                                     style={{
-                                                        background: confirming ? 'rgba(201, 96, 72, 0.6)' : 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                                        background: confirming
+                                                            ? 'rgba(201, 96, 72, 0.6)'
+                                                            : 'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                                                     }}
                                                 >
                                                     <FiCheckCircle size={18} />
-                                                    {confirming ? 'Đang xử lý...' : 'Xác nhận đã thu tiền'}
+                                                    {confirming
+                                                        ? 'Đang xử lý...'
+                                                        : 'Xác nhận đã thu tiền'}
                                                 </button>
                                             </div>
                                         </div>

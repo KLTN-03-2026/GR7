@@ -54,13 +54,46 @@ const ActiveTableOrders = ({ orders, loading }) => {
                                 ))}
                             </ul>
                         </div>
-                        <div className="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
-                            <span className="font-semibold text-gray-600">
-                                Tổng cộng:
-                            </span>
-                            <span className="font-bold text-xl text-orange-600">
-                                {order.total.toLocaleString('vi-VN')}đ
-                            </span>
+                        <div className="bg-gray-50 p-4 border-t border-gray-200 space-y-1">
+                            <div className="flex justify-between text-sm text-gray-500">
+                                <span>Tạm tính:</span>
+                                <span>
+                                    {(
+                                        order.subTotal || order.total
+                                    ).toLocaleString('vi-VN')}
+                                    đ
+                                </span>
+                            </div>
+                            {order.discount > 0 && (
+                                <div className="flex justify-between text-sm text-green-600">
+                                    <span>Voucher:</span>
+                                    <span>
+                                        -
+                                        {order.discount.toLocaleString('vi-VN')}
+                                        đ
+                                    </span>
+                                </div>
+                            )}
+                            {order.pointsDiscount > 0 && (
+                                <div className="flex justify-between text-sm text-blue-600">
+                                    <span>Giảm (Điểm):</span>
+                                    <span>
+                                        -
+                                        {order.pointsDiscount.toLocaleString(
+                                            'vi-VN'
+                                        )}
+                                        đ
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                <span className="font-bold text-gray-700">
+                                    Tổng cộng:
+                                </span>
+                                <span className="font-bold text-2xl text-orange-600">
+                                    {order.total.toLocaleString('vi-VN')}đ
+                                </span>
+                            </div>
                         </div>
                     </div>
                 ))

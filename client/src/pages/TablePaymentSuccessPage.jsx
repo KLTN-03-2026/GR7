@@ -258,7 +258,7 @@ const TablePaymentSuccessPage = () => {
                                         <span className="text-gray-700">
                                             {item.name} x{item.quantity}
                                         </span>
-                                        <span className="font-medium">
+                                        <span className="font-medium text-rose-400">
                                             {(
                                                 item.price * item.quantity
                                             ).toLocaleString('vi-VN')}
@@ -266,6 +266,55 @@ const TablePaymentSuccessPage = () => {
                                         </span>
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Summary Breakdown inside the same box */}
+                            <div className="bg-gray-50/50 p-4 border-t border-gray-100 space-y-2">
+                                <div className="flex justify-between text-sm text-gray-500">
+                                    <span>Tạm tính:</span>
+                                    <span className="font-medium">
+                                        {(
+                                            orderData.subTotal ||
+                                            orderData.total
+                                        ).toLocaleString('vi-VN')}
+                                        đ
+                                    </span>
+                                </div>
+                                {orderData.discount > 0 && (
+                                    <div className="flex justify-between text-sm text-green-600">
+                                        <span>Giảm giá (Voucher):</span>
+                                        <span className="font-medium">
+                                            -
+                                            {orderData.discount.toLocaleString(
+                                                'vi-VN'
+                                            )}
+                                            đ
+                                        </span>
+                                    </div>
+                                )}
+                                {orderData.pointsDiscount > 0 && (
+                                    <div className="flex justify-between text-sm text-blue-600">
+                                        <span>Giảm giá (Điểm):</span>
+                                        <span className="font-medium">
+                                            -
+                                            {orderData.pointsDiscount.toLocaleString(
+                                                'vi-VN'
+                                            )}
+                                            đ
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <span className="font-bold text-gray-700">
+                                        Tổng cộng:
+                                    </span>
+                                    <span className="font-bold text-xl text-green-600">
+                                        {orderData.total.toLocaleString(
+                                            'vi-VN'
+                                        )}
+                                        đ
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -275,7 +324,7 @@ const TablePaymentSuccessPage = () => {
                             <p className="text-sm text-gray-500">
                                 Mã giao dịch:
                             </p>
-                            <p className="text-xs text-gray-400 font-mono mt-1 break-all">
+                            <p className="text-xs text-blue-900 font-mono mt-1 break-all">
                                 {sessionId}
                             </p>
                         </div>
