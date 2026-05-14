@@ -125,18 +125,27 @@ export function registerSupportChatSocket(io) {
                 }
 
                 const savedMsg = chat.messages[chat.messages.length - 1];
-                
-                // Thêm conversationId vào message để client có thể match
                 const msgWithConversationId = {
                     ...savedMsg.toObject(),
                     conversationId: conversationId
                 };
                 
-                // Chỉ gửi cho room này (customer + assigned waiter)
+                // 1. Gửi cho room này (customer + assigned waiter nếu có)
                 io.to(conversationId).emit("message:new", msgWithConversationId);
                 
-                // Nếu có waiter assigned, notify riêng waiter đó
-                if (chat.assignedWaiterId) {
+                // 2. Nếu CHƯA có waiter assigned (vẫn đang waiting), notify cho TOÀN BỘ waiter room
+                if (!chat.assignedWaiterId || chat.requestStatus === "waiting") {
+                    console.log(`[Socket] Re-broadcasting request for ${conversationId} due to new message`);
+                    io.to("waiter_room").emit("waiter:newRequest", {
+                        conversationId,
+                        customerName: chat.customerName || "Khách hàng",
+                        tableNumber: chat.tableNumber || "N/A",
+                        lastMessage: text.trim(),
+                        createdAt: chat.createdAt,
+                    });
+                } 
+                // 3. Nếu ĐÃ có waiter assigned, notify riêng cho waiter đó
+                else if (chat.assignedWaiterId) {
                     io.to("waiter_room").emit("waiter:messageNotification", {
                         conversationId,
                         customerName: chat.customerName,

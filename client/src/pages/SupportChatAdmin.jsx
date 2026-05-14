@@ -67,10 +67,32 @@ export default function SupportChatAdmin() {
                 ...SummaryApi.get_support_conversations,
             });
             if (res.data?.success) {
-                setConversations(res.data.data);
+                const convs = res.data.data;
+                setConversations(convs);
+
+                // TỰ ĐỘNG JOIN LẠI ROOM: Tìm các hội thoại đang OPEN và ĐƯỢC GÁN cho mình
+                const socket = socketRef.current || getSocket();
+                if (socket && socket.connected) {
+                    convs.forEach((c) => {
+                        if (
+                            c.status === 'open' &&
+                            c.assignedWaiterId === user?._id
+                        ) {
+                            console.log(
+                                '[SupportChatAdmin] Auto-rejoining assigned room:',
+                                c.conversationId
+                            );
+                            socket.emit('waiter:joinConversation', {
+                                conversationId: c.conversationId,
+                                waiterId: user?._id,
+                            });
+                        }
+                    });
+                }
+
                 // Init unread map
                 const map = {};
-                res.data.data.forEach((c) => {
+                convs.forEach((c) => {
                     map[c.conversationId] = c.unreadByAdmin;
                 });
                 setUnreadMap(map);
@@ -80,7 +102,7 @@ export default function SupportChatAdmin() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user?._id]);
 
     useEffect(() => {
         fetchConversations();
@@ -147,7 +169,21 @@ export default function SupportChatAdmin() {
 
         // Messages from the currently open conversation
         socket.on('message:new', (msg) => {
-            setMessages((prev) => [...prev, msg]);
+            setMessages((prev) => {
+                // Kiểm tra xem tin nhắn đã tồn tại chưa (chống duplicate)
+                const isDuplicate = prev.some(
+                    (existingMsg) =>
+                        existingMsg.text === msg.text &&
+                        existingMsg.senderRole === msg.senderRole &&
+                        Math.abs(
+                            new Date(existingMsg.createdAt) -
+                                new Date(msg.createdAt)
+                        ) < 2000 // Trong vòng 2 giây
+                );
+
+                if (isDuplicate) return prev;
+                return [...prev, msg];
+            });
         });
 
         socket.on('conversation:closed', () => {

@@ -21,6 +21,13 @@ const BASE_SYSTEM_PROMPT = `Bạn là trợ lý AI của EatEase Restaurant — 
 - Giới thiệu các voucher/mã giảm giá hiện có
 - Hỗ trợ theo dõi đơn hàng và trạng thái món ăn
 - Thông tin về giờ mở cửa, địa chỉ nhà hàng
+- Giới thiệu Chương trình Khách hàng thân thiết (Loyalty Program):
+    + Hạng Bronze 🥉: Đăng ký là có, tích điểm cơ bản.
+    + Hạng Silver 🥈: Tích lũy 500đ, ưu đãi x1.5 điểm.
+    + Hạng Gold 🥇: Tích lũy 2000đ, ưu đãi x2 điểm.
+    + Hạng Platinum 💎: Tích lũy 5000đ, ưu đãi x3 điểm.
+    + Điểm thưởng có thể dùng để trừ trực tiếp vào hóa đơn (1 điểm = 1đ).
+- Luôn khuyến khích khách vãng lai đăng ký/đăng nhập để hưởng ưu đãi.
 
 ✨ PHONG CÁCH TRẢ LỜI:
 - Trả lời bằng tiếng Việt, thân thiện, nhiệt tình như một người bạn
@@ -86,8 +93,8 @@ const FAQ = [
         answer: "⚠️ EatEase rất quan tâm đến sức khỏe của bạn!\n\nNếu bạn có dị ứng thực phẩm, vui lòng:\n1. 📝 Thông báo cho nhân viên khi đặt bàn hoặc gọi món\n2. 🔍 Kiểm tra mô tả món trên thực đơn điện tử\n3. 👨‍🍳 Yêu cầu bếp điều chỉnh nguyên liệu\n\nChúng tôi sẽ cố gắng đáp ứng mọi yêu cầu về ăn uống! 💪"
     },
     {
-        keywords: ["thành viên", "member", "đăng ký", "tài khoản", "loyalty", "điểm thưởng", "tích điểm"],
-        answer: "🌟 Chương trình thành viên EatEase:\n\n• 🥉 **Bronze** — Đăng ký miễn phí, tích điểm mỗi đơn\n• 🥈 **Silver** — Tích đủ 500 điểm, nhận x1.5 điểm\n• 🥇 **Gold** — Tích đủ 2000 điểm, nhận x2 điểm\n• 💎 **Platinum** — Tích đủ 5000 điểm, nhận x3 điểm\n\n💡 Điểm có thể đổi thành giảm giá trực tiếp khi thanh toán!\nĐăng ký tài khoản ngay trên website để bắt đầu tích điểm! 🎁"
+        keywords: ["thành viên", "member", "đăng ký", "tài khoản", "loyalty", "điểm thưởng", "tích điểm", "hạng thẻ", "ưu đãi thành viên"],
+        answer: "🌟 Chương trình thành viên EatEase:\n\n• 🥉 **Bronze** — Đăng ký miễn phí, tích điểm mỗi đơn\n• 🥈 **Silver** — Tích đủ 500 điểm, nhận x1.5 điểm\n• 🥇 **Gold** — Tích đủ 2000 điểm, nhận x2 điểm\n• 💎 **Platinum** — Tích đủ 5000 điểm, nhận x3 điểm\n\n💡 Điểm có thể đổi thành giảm giá trực tiếp khi thanh toán (1 điểm = 1 VNĐ)!\nĐăng ký tài khoản ngay trên website để bắt đầu tích điểm và nhận ưu đãi cá nhân hóa! 🎁"
     },
     {
         keywords: ["giao hàng", "delivery", "ship", "mang về", "take away", "takeaway"],
@@ -103,8 +110,23 @@ const FAQ = [
     },
 ];
 
-function checkFAQ(message) {
+function checkFAQ(message, userContext = null) {
     const lower = message.toLowerCase();
+
+    // ─── Smart Bypass Logic ───
+    // 1. Nếu câu hỏi có dấu hiệu cá nhân hóa (hỏi về điểm của tôi, ưu đãi của tôi...)
+    const personalKeywords = ["của tôi", "của mình", "tôi đang", "mình đang", "tôi có", "mình có", "của tui", "em có"];
+    const isPersonal = personalKeywords.some(kw => lower.includes(kw));
+
+    // 2. Nếu câu hỏi dài hoặc phức tạp (có thể là hỏi nhiều ý)
+    const isComplex = message.length > 60 || (message.match(/[?？]/g) || []).length > 1;
+
+    // 3. Nếu khách hỏi về điểm/thành viên mà đã đăng nhập -> ưu tiên AI để trả lời số điểm thực tế
+    const isLoyaltyQuery = ["điểm", "hạng", "loyalty", "thành viên"].some(kw => lower.includes(kw));
+    const shouldPreferAI = (isLoyaltyQuery && userContext) || isPersonal || isComplex;
+
+    if (shouldPreferAI) return null; // Đẩy lên tầng AI xử lý
+
     for (const item of FAQ) {
         // Require at least 2 keywords to match, or 1 keyword with exact phrase match
         const matched = item.keywords.filter(kw => lower.includes(kw));
@@ -224,6 +246,16 @@ function buildLocalSmartReply(message, menuData, userContext = null) {
     const goodbyes = ["tạm biệt", "bye", "goodbye", "hẹn gặp lại", "see you"];
     if (goodbyes.some(g => lower.includes(g))) {
         return "Hẹn gặp lại bạn tại EatEase! 👋😊\n\nChúc bạn có một ngày tuyệt vời. Đừng quên đặt bàn trước khi đến nhé! 🍽️✨";
+    }
+
+    // Loyalty/Points patterns
+    const loyaltyKeywords = ["điểm", "hạng", "loyalty", "thành viên", "ưu đãi", "reward", "point"];
+    if (loyaltyKeywords.some(k => lower.includes(k))) {
+        if (userContext) {
+            return `Chào ${userContext.name}! Hiện tại bạn đang có **${userContext.points.toLocaleString('vi-VN')} điểm** thưởng và thuộc hạng **${userContext.tierLabel}**. 🌟\n\nBạn có thể dùng điểm này để giảm giá trực tiếp khi thanh toán đơn hàng tiếp theo nhé! ✨ Bạn cần mình tư vấn món gì để "sử dụng" số điểm này không? 😊`;
+        } else {
+            return "Chào bạn! EatEase có chương trình tích điểm cực kỳ hấp dẫn dành cho thành viên đó ạ! 🎁\n\nChương trình có 4 hạng thẻ: **Bronze, Silver, Gold và Platinum**. Mỗi đơn hàng bạn đều được tích điểm để nâng hạng và dùng điểm đó để trừ tiền trực tiếp vào hóa đơn (1 điểm = 1đ).\n\n⚠️ Vì bạn đang ở chế độ khách vãng lai nên mình không thể tra cứu điểm cho bạn được. Bạn hãy **Đăng nhập** hoặc **Đăng ký** để xem số điểm của mình và nhận ưu đãi nhé! ✨";
+        }
     }
 
     // Price query patterns
@@ -397,7 +429,8 @@ export async function chatController(req, res) {
         const userContext = await buildUserContext(req.user);
 
         // 1. Thử trả lời từ FAQ local trước (không tốn quota)
-        const faqAnswer = checkFAQ(text);
+        // Truyền userContext vào để check xem có nên bypass FAQ không
+        const faqAnswer = checkFAQ(text, userContext);
         if (faqAnswer) {
             console.log("[Chat] Served by: local FAQ");
             console.log("[Chat] Message:", text);
