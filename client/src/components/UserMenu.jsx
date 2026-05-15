@@ -360,29 +360,24 @@ const UserMenu = ({ close }) => {
             </div>
             <Divider />
             <div className="lg:text-sm text-xs grid gap-1 font-semibold">
-                {/* ADMIN - Products Section */}
+                {/* 1. General - Dashboard */}
                 <MenuSection
-                    title="Quản lý Sản phẩm"
-                    icon="📦"
-                    sectionKey="products"
-                    show={isAdmin(user.role)}
+                    title="Tổng quan"
+                    icon="📊"
+                    sectionKey="general"
+                    show={['ADMIN', 'WAITER', 'CASHIER', 'CHEF'].includes(user.role)}
                 >
-                    <MenuLink to="/dashboard/category">
-                        Quản lý Danh mục
-                    </MenuLink>
-                    <MenuLink to="/dashboard/sub-category">
-                        Quản lý Loại sản phẩm
-                    </MenuLink>
-                    <MenuLink to="/dashboard/product">
-                        Quản lý Sản phẩm
+                    <MenuLink to="/dashboard">
+                        Dashboard
                     </MenuLink>
                 </MenuSection>
-                {/* Restaurant Section - ADMIN, WAITER, CASHIER */}
+
+                {/* 2. Restaurant Section - ADMIN, WAITER, CASHIER */}
                 <MenuSection
                     title={
-                        user.role === 'WAITER' || user.role === 'CASHIER'
+                        ['WAITER', 'CASHIER', 'CHEF'].includes(user.role)
                             ? 'Công việc'
-                            : 'Quản lý Nhà hàng'
+                            : 'Vận hành'
                     }
                     icon="🍽️"
                     sectionKey="restaurant"
@@ -393,7 +388,7 @@ const UserMenu = ({ close }) => {
                             Quản lý Bàn ăn
                         </MenuLink>
                     )}
-                    {user.role === 'WAITER' && (
+                    {['WAITER', 'ADMIN'].includes(user.role) && (
                         <MenuLink to="/dashboard/table-orders">
                             Quản lý Đơn gọi món
                         </MenuLink>
@@ -405,63 +400,45 @@ const UserMenu = ({ close }) => {
                     )}
                     {['ADMIN', 'WAITER', 'CASHIER'].includes(user.role) && (
                         <MenuLink to="/dashboard/bill">
-                            {user.role === 'CASHIER'
-                                ? 'Xử lý Thanh toán'
-                                : 'Danh sách Hóa đơn'}
-                        </MenuLink>
-                    )}
-                    {user.role === 'ADMIN' && (
-                        <MenuLink to="/dashboard/report">
-                            Báo cáo Thống kê
+                            Hóa đơn & Thống kê
                         </MenuLink>
                     )}
                 </MenuSection>
-                {/* HR Section - ADMIN only */}
+
+                {/* 3. ADMIN - Products Section */}
                 <MenuSection
-                    title="Quản lý Nhân sự"
-                    icon="👥"
-                    sectionKey="hr"
+                    title="Thực đơn"
+                    icon="📦"
+                    sectionKey="products"
+                    show={user.role === 'ADMIN'}
+                >
+                    <MenuLink to="/dashboard/category">
+                        Danh mục
+                    </MenuLink>
+                    <MenuLink to="/dashboard/sub-category">
+                        Loại sản phẩm
+                    </MenuLink>
+                    <MenuLink to="/dashboard/product">
+                        Sản phẩm
+                    </MenuLink>
+                </MenuSection>
+
+                {/* 4. System Section - ADMIN only */}
+                <MenuSection
+                    title="Hệ thống"
+                    icon="⚙️"
+                    sectionKey="admin"
                     show={user.role === 'ADMIN'}
                 >
                     <MenuLink to="/dashboard/employee-management">
-                        Quản lý Nhân viên
+                        Nhân viên
                     </MenuLink>
-                    <MenuLink to="/dashboard/shift-management">
-                        Quản lý Ca làm
-                    </MenuLink>
-                    <MenuLink to="/dashboard/attendance-management">
-                        Quản lý Chấm công
-                    </MenuLink>
-                </MenuSection>
-                {/* Reports & Voucher Section - ADMIN only */}
-                <MenuSection
-                    title="Báo cáo & Khuyến mãi"
-                    icon="📈"
-                    sectionKey="reports"
-                    show={isAdmin(user.role)}
-                >
                     <MenuLink to="/dashboard/voucher">
-                        Quản lý Mã giảm giá
+                        Mã giảm giá
                     </MenuLink>
                 </MenuSection>
-                {/* Employee Section - WAITER, CHEF, CASHIER */}
-                <MenuSection
-                    title="Nhân viên"
-                    icon="💼"
-                    sectionKey="employee"
-                    show={['WAITER', 'CHEF', 'CASHIER'].includes(user.role)}
-                >
-                    <MenuLink to="/dashboard/employee-dashboard">
-                        Dashboard Nhân viên
-                    </MenuLink>
-                    <MenuLink to="/dashboard/my-shifts">
-                        Ca làm của tôi
-                    </MenuLink>
-                    <MenuLink to="/dashboard/my-performance">
-                        Hiệu suất của tôi
-                    </MenuLink>
-                </MenuSection>
-                {/* Personal Section - USER only */}
+
+                {/* 5. Personal Section - CUSTOMER only */}
                 <MenuSection
                     title="Cá nhân"
                     icon="👤"
@@ -477,7 +454,7 @@ const UserMenu = ({ close }) => {
                     <MenuLink to="/dashboard/address">
                         Địa chỉ giao hàng
                     </MenuLink>
-                    <MenuLink to="/booking">Đặt bàn</MenuLink>
+                    <MenuLink to="/booking">Đặt bàn mới</MenuLink>
                     <MenuLink to="/dashboard/chat-support-customer">
                         Hỗ trợ khách hàng
                     </MenuLink>

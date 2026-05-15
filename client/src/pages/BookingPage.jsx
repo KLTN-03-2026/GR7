@@ -66,18 +66,15 @@ const BookingPage = () => {
         }
     }, [user]);
 
-    // Time slots (18:00 - 22:00, 30 min intervals)
-    const timeSlots = [
-        '18:00',
-        '18:30',
-        '19:00',
-        '19:30',
-        '20:00',
-        '20:30',
-        '21:00',
-        '21:30',
-        '22:00',
-    ];
+    // Time slots (09:00 - 22:00, 30 min intervals)
+    const timeSlots = [];
+    for (let h = 9; h <= 22; h++) {
+        const hourStr = h < 10 ? `0${h}` : `${h}`;
+        timeSlots.push(`${hourStr}:00`);
+        if (h < 22) {
+            timeSlots.push(`${hourStr}:30`);
+        }
+    }
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -530,7 +527,7 @@ const BookingPage = () => {
                                         <SelectTrigger className="w-full h-12">
                                             <SelectValue placeholder="Chọn giờ" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="max-h-60">
                                             {timeSlots.map((time) => (
                                                 <SelectItem
                                                     key={time}
@@ -577,7 +574,7 @@ const BookingPage = () => {
                                                 }
                                             />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="max-h-60">
                                             {availableTables.map((table) => (
                                                 <SelectItem
                                                     key={table._id}

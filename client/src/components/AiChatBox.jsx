@@ -270,13 +270,13 @@ export default function AiChatBox({ isOpen = false, onClose }) {
                                     if (e.key === 'Enter') {
                                         // Ngăn chặn tuyệt đối mọi hành vi mặc định và sự kiện lan truyền của phím Enter
                                         e.stopPropagation();
-                                        
+
                                         if (!e.shiftKey) {
                                             e.preventDefault();
                                             handleSend();
                                             e.target.style.height = 'auto';
                                         }
-                                        // Nếu có Shift+Enter, chúng ta vẫn để sự kiện mặc định (xuống dòng) 
+                                        // Nếu có Shift+Enter, chúng ta vẫn để sự kiện mặc định (xuống dòng)
                                         // nhưng ĐÃ chặn propagation ở trên nên nó sẽ không gây ra navigation ở ngoài.
                                     }
                                 }}
