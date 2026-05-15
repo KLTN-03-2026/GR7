@@ -397,7 +397,38 @@ export async function handleStripeWebhook(request, response) {
         const session = event.data.object;
         const metadata = session.metadata || {};
 
-        if (metadata.orderType === 'dine_in' && metadata.tableOrderId) {
+        // CASE 1: Booking Deposit
+        if (metadata.type === 'booking_deposit' && metadata.bookingId) {
+            console.log('🔔 Processing booking deposit for ID:', metadata.bookingId);
+            try {
+                // Sử dụng findByIdAndUpdate để bypass pre('save') validation (tránh lỗi do ràng buộc thời gian)
+                const updatedBooking = await BookingModel.findByIdAndUpdate(
+                    metadata.bookingId,
+                    {
+                        $set: {
+                            depositPaid: true,
+                            depositStatus: 'paid',
+                            depositPaidAt: new Date(),
+                            status: 'confirmed', // Tự động xác nhận khi đã cọc
+                            stripeDepositPaymentIntentId: session.payment_intent,
+                            paymentIntentId: session.payment_intent,
+                            stripeDepositSessionId: session.id
+                        }
+                    },
+                    { new: true }
+                );
+
+                if (updatedBooking) {
+                    console.log('✅ Booking deposit marked as PAID for:', metadata.bookingId);
+                } else {
+                    console.warn('⚠️ Booking not found for deposit payment:', metadata.bookingId);
+                }
+            } catch (err) {
+                console.error('[Stripe Webhook] Error processing booking deposit:', err);
+            }
+        }
+        // CASE 2: Regular Table Order
+        else if ((metadata.orderType === 'dine_in' || metadata.type === 'dine_in') && metadata.tableOrderId) {
             try {
                 const tableOrder = await TableOrderModel.findById(metadata.tableOrderId);
                 if (tableOrder && tableOrder.status !== 'Closed') {
@@ -426,7 +457,8 @@ export async function handleStripeWebhook(request, response) {
                             }
 
                             // 2. Tích điểm mới
-                            await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
+                            const earned = await processLoyaltyPoints(tableOrder.userId, tableOrder.total, tableOrder._id, null);
+                            tableOrder.rewardPointsEarned = earned;
                         }
                     }
 
@@ -445,6 +477,7 @@ export async function handleStripeWebhook(request, response) {
 
                     tableOrder.paymentId = payment._id;
                     await tableOrder.save();
+                    console.log('✅ Regular table order payment completed for:', metadata.tableOrderId);
                 }
             } catch (err) {
                 console.error('[Stripe Webhook] Error processing order:', err);

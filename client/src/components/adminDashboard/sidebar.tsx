@@ -51,8 +51,53 @@ interface NavigationSection {
 // Grouped navigation sections
 const navigationSections: NavigationSection[] = [
     {
+        key: 'general',
+        title: 'Tổng quan',
+        icon: '📊',
+        roles: ['ADMIN', 'WAITER', 'CASHIER', 'CHEF'],
+        items: [
+            {
+                name: 'Dashboard',
+                href: '/dashboard',
+                icon: LayoutDashboard,
+            },
+        ],
+    },
+    {
+        key: 'restaurant',
+        title: 'Vận hành',
+        icon: '🍽️',
+        roles: ['ADMIN', 'WAITER', 'CASHIER'],
+        items: [
+            {
+                name: 'Đơn gọi món',
+                href: '/dashboard/table-orders',
+                icon: FileText,
+                roles: ['WAITER', 'ADMIN'],
+            },
+            {
+                name: 'Đặt bàn',
+                href: '/dashboard/booking',
+                icon: Calendar,
+                roles: ['ADMIN', 'WAITER'],
+            },
+            {
+                name: 'Hóa đơn & Thống kê',
+                href: '/dashboard/bill',
+                icon: BarChart2,
+                roles: ['ADMIN', 'CASHIER', 'WAITER'],
+            },
+            {
+                name: 'Quản lý Bàn',
+                href: '/dashboard/table',
+                icon: Utensils,
+                roles: ['ADMIN'],
+            },
+        ],
+    },
+    {
         key: 'products',
-        title: 'Quản lý Sản phẩm',
+        title: 'Thực đơn',
         icon: '📦',
         roles: ['ADMIN'],
         items: [
@@ -66,41 +111,9 @@ const navigationSections: NavigationSection[] = [
         ],
     },
     {
-        key: 'restaurant',
-        title: 'Quản lý Nhà hàng',
-        icon: '🍽️',
-        roles: ['ADMIN', 'WAITER', 'CASHIER'],
-        items: [
-            {
-                name: 'Bàn ăn',
-                href: '/dashboard/table',
-                icon: Utensils,
-                roles: ['ADMIN'],
-            },
-            {
-                name: 'Đơn gọi món',
-                href: '/dashboard/table-orders',
-                icon: FileText,
-                roles: ['WAITER'],
-            },
-            {
-                name: 'Đặt bàn',
-                href: '/dashboard/booking',
-                icon: Calendar,
-                roles: ['ADMIN', 'WAITER'],
-            },
-            {
-                name: 'Báo cáo & Thống kê',
-                href: '/dashboard/bill',
-                icon: BarChart2,
-                roles: ['ADMIN', 'WAITER', 'CASHIER'],
-            },
-        ],
-    },
-    {
-        key: 'hr',
-        title: 'Quản lý Nhân sự',
-        icon: '👥',
+        key: 'admin',
+        title: 'Hệ thống',
+        icon: '⚙️',
         roles: ['ADMIN'],
         items: [
             {
@@ -109,24 +122,6 @@ const navigationSections: NavigationSection[] = [
                 icon: Users,
             },
             {
-                name: 'Ca làm',
-                href: '/dashboard/shift-management',
-                icon: Clock,
-            },
-            {
-                name: 'Chấm công',
-                href: '/dashboard/attendance-management',
-                icon: CheckSquare,
-            },
-        ],
-    },
-    {
-        key: 'reports',
-        title: 'Báo cáo & Khuyến mãi',
-        icon: '📈',
-        roles: ['ADMIN'],
-        items: [
-            {
                 name: 'Mã giảm giá',
                 href: '/dashboard/voucher',
                 icon: TicketPercent,
@@ -134,32 +129,9 @@ const navigationSections: NavigationSection[] = [
         ],
     },
     {
-        key: 'employee',
-        title: 'Nhân viên',
-        icon: '💼',
-        roles: ['WAITER', 'CHEF', 'CASHIER', 'ADMIN'],
-        items: [
-            {
-                name: 'Dashboard',
-                href: '/dashboard',
-                icon: LayoutDashboard,
-            },
-            {
-                name: 'Ca làm của tôi',
-                href: '/dashboard/my-shifts',
-                icon: Clock,
-            },
-            {
-                name: 'Hiệu suất',
-                href: '/dashboard/my-performance',
-                icon: TrendingUp,
-            },
-        ],
-    },
-    {
         key: 'personal',
         title: 'Cá nhân',
-        icon: '⚙️',
+        icon: '👤',
         roles: ['USER'],
         items: [
             {
@@ -170,6 +142,7 @@ const navigationSections: NavigationSection[] = [
         ],
     },
 ];
+
 const bottomNavigation = [
     { name: 'Tài khoản', href: '/dashboard/profile', icon: Settings },
     {
@@ -179,65 +152,62 @@ const bottomNavigation = [
         roles: ['ADMIN', 'WAITER', 'CASHIER'],
     },
 ];
+
 export function Sidebar() {
     const { pathname } = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+
     // State for collapsible menu sections
     const [expandedSections, setExpandedSections] = useState<
         Record<string, boolean>
     >({
-        products: false,
+        general: true,
         restaurant: false,
-        hr: false,
-        reports: false,
-        employee: false,
+        products: false,
+        admin: false,
         personal: false,
     });
+
     const user = useSelector((state: RootState) => state.user);
     const { unreadCount } = useSupportChat();
+
     // Auto-expand section based on current route (accordion behavior)
     useEffect(() => {
         const path = pathname;
         const newSections: Record<string, boolean> = {
-            products: false,
+            general: false,
             restaurant: false,
-            hr: false,
-            reports: false,
-            employee: false,
+            products: false,
+            admin: false,
             personal: false,
         };
+
         // Determine which section to expand
-        if (
+        if (path === '/dashboard') {
+            newSections.general = true;
+        } else if (
+            path.includes('/table-orders') ||
+            path.includes('/booking') ||
+            path.includes('/bill') ||
+            path.includes('/table')
+        ) {
+            newSections.restaurant = true;
+        } else if (
             path.includes('/category') ||
             path.includes('/sub-category') ||
             path.includes('/product')
         ) {
             newSections.products = true;
         } else if (
-            path.includes('/table') ||
-            path.includes('/booking') ||
-            path.includes('/bill') ||
-            path.includes('/report')
-        ) {
-            newSections.restaurant = true;
-        } else if (
             path.includes('/employee-management') ||
-            path.includes('/shift-management') ||
-            path.includes('/attendance-management')
+            path.includes('/voucher')
         ) {
-            newSections.hr = true;
-        } else if (path.includes('/voucher')) {
-            newSections.reports = true;
-        } else if (
-            path === '/dashboard' ||
-            path.includes('/my-shifts') ||
-            path.includes('/my-performance')
-        ) {
-            newSections.employee = true;
-        } else if (path.includes('/address') || path.includes('/my-orders')) {
+            newSections.admin = true;
+        } else if (path.includes('/my-orders')) {
             newSections.personal = true;
         }
+
         setExpandedSections(newSections);
     }, [pathname]);
     // Toggle section expand/collapse
