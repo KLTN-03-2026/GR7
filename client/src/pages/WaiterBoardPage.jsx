@@ -563,7 +563,7 @@ export default function WaiterBoardPage() {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold uppercase tracking-tight text-highlight leading-none">
-                                Waiter Board
+                                Waiter Dashboard
                             </h1>
                             <p className="text-muted-foreground text-xs font-semibold tracking-wide mt-1 flex items-center gap-2">
                                 <span className="uppercase">
