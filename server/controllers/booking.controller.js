@@ -371,6 +371,16 @@ export async function confirmBookingController(request, response) {
             });
         }
 
+        // Kiểm tra tiền cọc (PB13)
+        // Nếu yêu cầu cọc mà khách chưa trả -> không cho Admin xác nhận
+        if (booking.depositRequired && booking.depositStatus !== 'paid') {
+            return response.status(400).json({
+                message: "Khách hàng chưa thanh toán tiền cọc. Không thể xác nhận đặt bàn này.",
+                error: true,
+                success: false
+            });
+        }
+
         booking.status = 'confirmed';
         await booking.save();
 
