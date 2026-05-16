@@ -78,12 +78,12 @@ export async function createBookingController(request, response) {
 
         // ── Deposit formula ─────────────────────────────────────────────
         // • Phí giữ bàn : 50.000đ/người  (khi số khách >= 5)
-        // • Cọc Pre-order: 100% giá trị các món đặt trước
+        // • Cọc Pre-order: 50% giá trị các món đặt trước (thay vì 100% để giảm áp lực cho khách)
         // Áp dụng khi: số khách >= 5 HOẶC có Pre-order (tránh "bom hàng")
         const preOrderCalcTotal = sanitizedPreOrder.reduce((s, i) => s + i.price * i.quantity, 0);
         const guestDeposit = numberOfGuests >= 5 ? numberOfGuests * 50000 : 0;
-        const preOrderDeposit = preOrderCalcTotal; // 100% giá trị món
-        const totalDeposit = guestDeposit + preOrderDeposit;
+        const preOrderDeposit = preOrderCalcTotal * 0.3; // 30% giá trị món
+        const totalDeposit = Math.round(guestDeposit + preOrderDeposit);
 
         const newBooking = new BookingModel({
             customerName,

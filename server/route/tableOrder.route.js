@@ -14,7 +14,8 @@ import {
     applyVoucherToTableOrder,
     removeVoucherFromTableOrder,
     applyRewardPointsToTableOrder,
-    cancelRewardPoints
+    cancelRewardPoints,
+    getUserTableOrders
 } from '../controllers/tableOrder.controller.js';
 
 
@@ -44,5 +45,6 @@ tableOrderRouter.patch('/:id/apply-voucher', auth, applyVoucherToTableOrder);
 tableOrderRouter.patch('/:id/remove-voucher', auth, removeVoucherFromTableOrder);
 tableOrderRouter.patch('/:id/apply-reward-points', auth, applyRewardPointsToTableOrder);
 tableOrderRouter.post('/:id/cancel-reward-points', auth, cancelRewardPoints);
+tableOrderRouter.get('/user-orders', auth, getUserTableOrders);
 
 export default tableOrderRouter;

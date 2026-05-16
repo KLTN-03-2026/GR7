@@ -43,11 +43,23 @@ const MyOrdersPage = () => {
                 color: 'text-orange-600 dark:text-orange-400',
                 bgColor: 'bg-orange-50 dark:bg-orange-900/20',
             },
-            processing: {
-                label: 'Đang xử lý',
+            pending_payment: {
+                label: 'Chờ thanh toán',
+                icon: Clock,
+                color: 'text-orange-600 dark:text-orange-400',
+                bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+            },
+            active: {
+                label: 'Đang dùng món',
                 icon: Package,
                 color: 'text-blue-600 dark:text-blue-400',
                 bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+            },
+            Closed: {
+                label: 'Hoàn thành',
+                icon: CheckCircle2,
+                color: 'text-green-600 dark:text-green-400',
+                bgColor: 'bg-green-50 dark:bg-green-900/20',
             },
             completed: {
                 label: 'Hoàn thành',
@@ -99,7 +111,12 @@ const MyOrdersPage = () => {
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-base font-semibold text-foreground">
-                            Đơn hàng #{order.orderId}
+                            Đơn hàng #{order.orderId || order._id?.slice(-8).toUpperCase()}
+                            {order.tableNumber && (
+                                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    (Bàn {order.tableNumber})
+                                </span>
+                            )}
                         </CardTitle>
                         <div 
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${statusConfig.bgColor}`}
@@ -134,7 +151,7 @@ const MyOrdersPage = () => {
                                 className="text-lg font-bold"
                                 style={{ color: '#C96048' }}
                             >
-                                {order.totalAmount?.toLocaleString('vi-VN')}đ
+                                {order.total?.toLocaleString('vi-VN')}đ
                             </span>
                         </div>
                     </div>
@@ -173,15 +190,15 @@ const MyOrdersPage = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-5 md:grid-cols-5">
                     <TabsTrigger value="all">Tất cả</TabsTrigger>
-                    <TabsTrigger value="pending">Chờ xử lý</TabsTrigger>
-                    <TabsTrigger value="processing">Đang xử lý</TabsTrigger>
-                    <TabsTrigger value="completed">Hoàn thành</TabsTrigger>
+                    <TabsTrigger value="pending_payment">Chờ TT</TabsTrigger>
+                    <TabsTrigger value="active">Đang dùng</TabsTrigger>
+                    <TabsTrigger value="Closed">Hoàn thành</TabsTrigger>
                     <TabsTrigger value="cancelled">Đã hủy</TabsTrigger>
                 </TabsList>
 
-                {['all', 'pending', 'processing', 'completed', 'cancelled'].map((status) => (
+                {['all', 'pending_payment', 'active', 'Closed', 'cancelled'].map((status) => (
                     <TabsContent key={status} value={status} className="space-y-4">
                         {filterOrders(status).length === 0 ? (
                             <Card>

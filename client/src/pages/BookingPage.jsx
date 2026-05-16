@@ -36,7 +36,10 @@ const BookingPage = () => {
 
     // Modal confirm deposit
     const [showConfirmDeposit, setShowConfirmDeposit] = useState(false);
-    const [depositModalData, setDepositModalData] = useState({ title: '', message: '' });
+    const [depositModalData, setDepositModalData] = useState({
+        title: '',
+        message: '',
+    });
 
     // Pre-order state
     const [showMenuPopup, setShowMenuPopup] = useState(false);
@@ -171,7 +174,7 @@ const BookingPage = () => {
         const hasLargeParty = numGuests >= 5;
         const hasPreOrderItems = preOrderItems.length > 0;
         const guestDeposit = hasLargeParty ? numGuests * 50000 : 0;
-        const preOrderDeposit = preOrderTotal; // 100% giá trị món đặt trước
+        const preOrderDeposit = preOrderTotal * 0.3; // 30% giá trị món đặt trước
         const totalDeposit = guestDeposit + preOrderDeposit;
 
         if (hasLargeParty || hasPreOrderItems) {
@@ -183,15 +186,16 @@ const BookingPage = () => {
             }
             if (hasPreOrderItems) {
                 lines.push(
-                    `• Cọc món đặt trước: ${preOrderDeposit.toLocaleString('vi-VN')}đ (100% giá trị món)`
+                    `• Cọc món đặt trước: ${preOrderDeposit.toLocaleString('vi-VN')}đ (30% giá trị món)`
                 );
             }
 
             setDepositModalData({
                 title: 'Yêu cầu đặt cọc',
-                message: `Đặt bàn của bạn yêu cầu đặt cọc tổng cộng ${totalDeposit.toLocaleString('vi-VN')}đ:\n\n` +
+                message:
+                    `Đặt bàn của bạn yêu cầu đặt cọc tổng cộng ${totalDeposit.toLocaleString('vi-VN')}đ:\n\n` +
                     lines.join('\n') +
-                    `\n\nBạn có muốn tiếp tục thanh toán không?`
+                    `\n\nBạn có muốn tiếp tục thanh toán không?`,
             });
             setShowConfirmDeposit(true);
             return;
@@ -237,10 +241,8 @@ const BookingPage = () => {
                             paymentError
                         );
                         AxiosToastError(paymentError);
-                        // Even if payment fails, booking is created but pending/unpaid.
-                        // We can show success but mention payment is pending?
-                        // Or just show normal success and let them pay later (if we had that feature).
-                        // For now, fall through to normal success.
+                        setLoading(false);
+                        return; // Stop here if payment failed
                     }
                 }
 

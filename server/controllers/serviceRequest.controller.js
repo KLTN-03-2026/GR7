@@ -11,9 +11,16 @@ export async function callWaiter(request, response) {
         const { type = 'cancel_item', note = '' } = request.body;
 
         const user = await UserModel.findById(userId);
-        if (!user || user.role !== 'TABLE') {
+        if (!user || (user.role !== 'TABLE' && user.role !== 'CUSTOMER')) {
             return response.status(403).json({
-                message: 'Chỉ tài khoản bàn mới có thể gọi phục vụ',
+                message: 'Chỉ tài khoản bàn hoặc khách hàng tại bàn mới có thể gọi phục vụ',
+                error: true, success: false
+            });
+        }
+
+        if (!user.linkedTableId) {
+            return response.status(400).json({
+                message: 'Tài khoản chưa được liên kết với bàn nào',
                 error: true, success: false
             });
         }

@@ -18,6 +18,7 @@ import {
     FiGrid,
     FiTag,
     FiX,
+    FiShoppingBag,
 } from 'react-icons/fi';
 import { MdOutlineKitchen } from 'react-icons/md';
 import ShinyText from '../components/animations/ShinyText';
@@ -697,6 +698,19 @@ const TableMenuPage = () => {
                                 </span>
                             )}
                         </button>
+                        {/* Personal Order History button (dashboard/my-orders) */}
+                        {user?._id && (
+                            <button
+                                onClick={() => navigate('/dashboard/my-orders')}
+                                className="relative bg-white dark:bg-gray-800 text-purple-500 dark:text-purple-400 p-4 md:p-3 rounded-full hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors active:scale-95"
+                                title="Lịch sử đặt hàng của tôi"
+                            >
+                                <FiShoppingBag
+                                    size={24}
+                                    className="md:text-[22px]"
+                                />
+                            </button>
+                        )}
                         {/* Local cart button */}
                         <button
                             onClick={() => setShowCart(true)}

@@ -675,3 +675,27 @@ export async function cancelRewardPoints(request, response) {
     }
 }
 
+
+// Get user's table order history
+export async function getUserTableOrders(request, response) {
+    try {
+        const userId = request.userId;
+        if (!userId) {
+            return response.status(401).json({ message: 'Vui lòng đăng nhập', error: true, success: false });
+        }
+
+        const orders = await TableOrderModel.find({ userId: userId })
+            .populate('items.productId', 'name image')
+            .sort({ createdAt: -1 });
+
+        return response.status(200).json({
+            message: 'Lấy lịch sử đơn hàng thành công',
+            error: false,
+            success: true,
+            data: orders
+        });
+    } catch (error) {
+        console.error('Error getting user table orders:', error);
+        return response.status(500).json({ message: error.message || 'Lỗi khi lấy lịch sử đơn hàng', error: true, success: false });
+    }
+}

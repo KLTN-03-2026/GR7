@@ -504,7 +504,7 @@ const SummaryApi = {
 
     // User Orders
     get_user_orders: {
-        url: '/api/order/user-orders',
+        url: '/api/table-order/user-orders',
         method: 'get'
     },
 
