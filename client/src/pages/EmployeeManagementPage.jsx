@@ -9,11 +9,24 @@ import {
     FaTrashRestore,
     FaExclamationTriangle,
 } from 'react-icons/fa';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import Axios from '@/utils/Axios';
 import SummaryApi from '@/common/SummaryApi';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import Loading from '@/components/Loading';
 
 const EmployeeManagementPage = () => {
     const user = useSelector((state) => state?.user);
@@ -26,6 +39,10 @@ const EmployeeManagementPage = () => {
     const [deletedUsers, setDeletedUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
     // Modals state
     const [showAddModal, setShowAddModal] = useState(false);
@@ -103,7 +120,12 @@ const EmployeeManagementPage = () => {
         } else {
             fetchDeletedUsers();
         }
+        setCurrentPage(1);
     }, [activeTab]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -246,165 +268,165 @@ const EmployeeManagementPage = () => {
             u.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Pagination logic
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const paginatedUsers = filteredUsers.slice(
+        indexOfFirstItem,
+        indexOfLastItem
+    );
+
     return (
-        <div className="container mx-auto space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-highlight uppercase flex items-center gap-2">
-                        Quản lý Tài khoản Hệ thống
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Thêm mới, sửa quyền hạn hoặc quản lý thùng rác.
-                    </p>
-                </div>
-                {user.role === 'ADMIN' && activeTab === 'active' && (
-                    <button
-                        onClick={handleOpenAdd}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 transition"
-                    >
-                        <FaUserPlus /> Thêm tài khoản
-                    </button>
-                )}
-            </div>
+        <section className="container mx-auto grid gap-4 animate-in fade-in duration-500">
+            {/* Header Card */}
+            <Card className="py-6 border-card-foreground">
+                <CardHeader className="flex flex-row items-center justify-between gap-6">
+                    <div className="space-y-1">
+                        <CardTitle className="text-xl text-highlight font-bold uppercase">
+                            Tài khoản Hệ thống
+                        </CardTitle>
+                        <CardDescription>
+                            Quản lý nhân sự, phân quyền và trạng thái hoạt động
+                            của tài khoản.
+                        </CardDescription>
+                    </div>
+                    {user.role === 'ADMIN' && activeTab === 'active' && (
+                        <Button
+                            onClick={handleOpenAdd}
+                            className="bg-highlight hover:bg-highlight_2 text-white flex items-center gap-2"
+                        >
+                            <FaUserPlus /> Thêm tài khoản
+                        </Button>
+                    )}
+                </CardHeader>
+            </Card>
 
-            {/* Tabs & Filter */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between liquid-glass border border-white/10 rounded-lg p-4">
-                <div className="flex w-full md:w-auto overflow-x-auto gap-2">
-                    <button
-                        onClick={() => setActiveTab('active')}
-                        className={`px-4 py-2 text-sm font-medium transition-all ${
-                            activeTab === 'active'
-                                ? 'border-b-2 border-highlight text-highlight'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                        Đang Hoạt Động (
-                        {activeTab === 'active' ? users.length : '...'})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('deleted')}
-                        className={`px-4 py-2 text-sm font-medium transition-all ${
-                            activeTab === 'deleted'
-                                ? 'border-b-2 border-red-500 text-red-500'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                        Đã Xóa / Khóa (
-                        {activeTab === 'deleted' ? deletedUsers.length : '...'})
-                    </button>
-                </div>
-
-                <div className="relative w-full md:w-64">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Tìm theo tên/email..."
+            {/* Filter Area */}
+            <div className="liquid-glass border-2 border-border rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="relative w-full md:w-80">
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Tìm theo tên hoặc email..."
+                        className="pl-10"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-background border border-gray-700 rounded-md py-2 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:border-highlight"
                     />
                 </div>
+
+                <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="w-full md:w-auto"
+                >
+                    <TabsList className="grid grid-cols-2 w-full md:w-[300px]">
+                        <TabsTrigger value="active">
+                            Hoạt động ({users.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="deleted">
+                            Thùng rác ({deletedUsers.length})
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </div>
 
-            {/* Table */}
-            <div className="liquid-glass rounded-lg border border-white/10 overflow-hidden">
+            {/* Main Table Content */}
+            <div className="bg-background border-2 border-border rounded-lg overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-foreground">
-                        <thead className="text-xs uppercase bg-black/40 text-highlight border-b border-gray-800">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs uppercase bg-muted text-muted-foreground border-b border-border">
                             <tr>
-                                <th className="px-6 py-4">STT</th>
-                                <th className="px-6 py-4">Người dùng</th>
-                                <th className="px-6 py-4">Vai trò</th>
-                                <th className="px-6 py-4">Trạng thái</th>
-                                <th className="px-6 py-4">
+                                <th className="px-6 py-4 font-bold">
+                                    Người dùng
+                                </th>
+                                <th className="px-6 py-4 font-bold">Vai trò</th>
+                                <th className="px-6 py-4 font-bold text-center">
+                                    Trạng thái
+                                </th>
+                                <th className="px-6 py-4 font-bold text-center">
                                     {activeTab === 'active'
                                         ? 'Ngày tham gia'
-                                        : 'Ngày Xóa'}
+                                        : 'Ngày xóa'}
                                 </th>
-                                <th className="px-6 py-4 text-center">
-                                    Thao tác
+                                <th className="px-6 py-4 font-bold text-center">
+                                    Hành động
                                 </th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td
-                                        colSpan="6"
-                                        className="text-center py-8 text-muted-foreground"
-                                    >
-                                        Đang tải dữ liệu...
+                                    <td colSpan="5" className="py-20">
+                                        <Loading />
                                     </td>
                                 </tr>
-                            ) : filteredUsers.length === 0 ? (
+                            ) : paginatedUsers.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan="6"
-                                        className="text-center py-8 text-muted-foreground"
+                                        colSpan="5"
+                                        className="px-6 py-10 text-center text-muted-foreground"
                                     >
-                                        Không tìm thấy tài khoản nào.
+                                        Không tìm thấy tài khoản nào phù hợp.
                                     </td>
                                 </tr>
                             ) : (
-                                filteredUsers.map((u, index) => (
+                                paginatedUsers.map((u, index) => (
                                     <tr
                                         key={u._id}
-                                        className="border-b border-gray-800 last:border-0 hover:bg-white/5 transition-colors"
+                                        className="hover:bg-muted/50 transition-colors"
                                     >
-                                        <td className="px-6 py-4 font-medium">
-                                            {index + 1}
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-foreground text-base">
+                                                    {u.name}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {u.email}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="font-semibold">
-                                                {u.name}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {u.email}
-                                            </div>
+                                            <span
+                                                className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                                                    u.role === 'ADMIN'
+                                                        ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                                        : u.role === 'MANAGER'
+                                                          ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
+                                                          : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                                                }`}
+                                            >
+                                                {u.role}
+                                            </span>
                                         </td>
-                                        <td className="px-6 py-4 font-bold">
-                                            {u.role === 'ADMIN' ? (
-                                                <span className="text-red-400">
-                                                    {u.role}
-                                                </span>
-                                            ) : u.role === 'MANAGER' ? (
-                                                <span className="text-orange-400">
-                                                    {u.role}
-                                                </span>
-                                            ) : (
-                                                <span className="text-blue-400">
-                                                    {u.role}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 text-center">
                                             {u.status === 'Active' ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-                                                    <FaCheckCircle className="text-[10px]" />{' '}
+                                                <span className="inline-flex items-center gap-1 text-green-500 font-medium">
+                                                    <FaCheckCircle size={12} />{' '}
                                                     Hoạt động
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
-                                                    <FaRegStopCircle className="text-[10px]" />{' '}
-                                                    Khóa
+                                                <span className="inline-flex items-center gap-1 text-red-500 font-medium">
+                                                    <FaRegStopCircle
+                                                        size={12}
+                                                    />{' '}
+                                                    Đã khóa
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-xs text-muted-foreground">
-                                            {activeTab === 'active'
-                                                ? format(
-                                                      new Date(u.createdAt),
-                                                      'dd/MM/yyyy HH:mm'
-                                                  )
-                                                : u.deletedAt
-                                                  ? format(
-                                                        new Date(u.deletedAt),
-                                                        'dd/MM/yyyy HH:mm'
-                                                    )
-                                                  : '—'}
+                                        <td className="px-6 py-4 text-center text-muted-foreground text-xs">
+                                            {format(
+                                                new Date(
+                                                    activeTab === 'active'
+                                                        ? u.createdAt
+                                                        : u.deletedAt ||
+                                                              u.updatedAt
+                                                ),
+                                                'dd/MM/yyyy HH:mm',
+                                                { locale: vi }
+                                            )}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-3">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center gap-2">
                                                 {activeTab === 'active' ? (
                                                     <>
                                                         <button
@@ -413,10 +435,10 @@ const EmployeeManagementPage = () => {
                                                                     u
                                                                 )
                                                             }
-                                                            className="text-highlight hover:text-highlight/80 transition-colors"
-                                                            title="Sửa"
+                                                            className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                                                            title="Sửa thông tin"
                                                         >
-                                                            <FaEdit size={16} />
+                                                            <FaEdit size={14} />
                                                         </button>
                                                         <button
                                                             onClick={() =>
@@ -425,11 +447,11 @@ const EmployeeManagementPage = () => {
                                                                     u
                                                                 )
                                                             }
-                                                            className="text-red-400 hover:text-red-300 transition-colors"
+                                                            className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
                                                             title="Đưa vào thùng rác"
                                                         >
                                                             <FaTrashAlt
-                                                                size={16}
+                                                                size={14}
                                                             />
                                                         </button>
                                                     </>
@@ -442,11 +464,11 @@ const EmployeeManagementPage = () => {
                                                                     u
                                                                 )
                                                             }
-                                                            className="text-green-400 hover:text-green-300 transition-colors"
+                                                            className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
                                                             title="Khôi phục"
                                                         >
                                                             <FaTrashRestore
-                                                                size={16}
+                                                                size={14}
                                                             />
                                                         </button>
                                                         <button
@@ -456,11 +478,11 @@ const EmployeeManagementPage = () => {
                                                                     u
                                                                 )
                                                             }
-                                                            className="text-red-500 hover:text-red-400 transition-colors"
+                                                            className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
                                                             title="Xóa vĩnh viễn"
                                                         >
                                                             <FaTrashAlt
-                                                                size={16}
+                                                                size={14}
                                                             />
                                                         </button>
                                                     </>
@@ -473,200 +495,272 @@ const EmployeeManagementPage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && filteredUsers.length > 0 && (
+                    <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-between gap-4">
+                        <div className="text-xs text-muted-foreground font-medium flex gap-1.5">
+                            Hiển thị{' '}
+                            <span className="font-bold text-foreground">
+                                {indexOfFirstItem + 1}
+                            </span>{' '}
+                            -{' '}
+                            <span className="font-bold text-foreground">
+                                {Math.min(
+                                    indexOfLastItem,
+                                    filteredUsers.length
+                                )}
+                            </span>{' '}
+                            trên tổng số{' '}
+                            <span className="font-bold text-foreground">
+                                {filteredUsers.length}
+                            </span>{' '}
+                            tài khoản
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                    setCurrentPage((prev) =>
+                                        Math.max(prev - 1, 1)
+                                    )
+                                }
+                                disabled={currentPage === 1}
+                                className="h-8 w-8 p-0"
+                            >
+                                &lt;
+                            </Button>
+
+                            <div className="flex items-center gap-1 mx-2">
+                                {[...Array(totalPages)].map((_, i) => {
+                                    const pageNum = i + 1;
+                                    // Hiển thị tối đa 5 nút trang xung quanh trang hiện tại
+                                    if (
+                                        totalPages <= 7 ||
+                                        pageNum === 1 ||
+                                        pageNum === totalPages ||
+                                        (pageNum >= currentPage - 1 &&
+                                            pageNum <= currentPage + 1)
+                                    ) {
+                                        return (
+                                            <Button
+                                                key={pageNum}
+                                                variant={
+                                                    currentPage === pageNum
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                size="sm"
+                                                onClick={() =>
+                                                    setCurrentPage(pageNum)
+                                                }
+                                                className={`h-8 w-8 p-0 text-xs ${currentPage === pageNum ? 'bg-highlight hover:bg-highlight_2 text-white' : ''}`}
+                                            >
+                                                {pageNum}
+                                            </Button>
+                                        );
+                                    } else if (
+                                        (pageNum === currentPage - 2 &&
+                                            pageNum > 1) ||
+                                        (pageNum === currentPage + 2 &&
+                                            pageNum < totalPages)
+                                    ) {
+                                        return (
+                                            <span
+                                                key={pageNum}
+                                                className="text-muted-foreground px-1"
+                                            >
+                                                ...
+                                            </span>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                    setCurrentPage((prev) =>
+                                        Math.min(prev + 1, totalPages)
+                                    )
+                                }
+                                disabled={currentPage === totalPages}
+                                className="h-8 w-8 p-0"
+                            >
+                                &gt;
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Modal Add */}
-            {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-background border border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
-                        <h3 className="text-xl font-bold text-highlight mb-4">
-                            Tạo Tài Khoản Mới
+            {/* Modals - Standardized glass style */}
+            {(showAddModal || showEditModal) && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in duration-300">
+                    <div className="bg-background border-2 border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
+                        <h3 className="text-xl font-bold text-highlight uppercase mb-6 flex items-center gap-2">
+                            {showAddModal ? <FaUserPlus /> : <FaEdit />}
+                            {showAddModal
+                                ? 'Tạo tài khoản mới'
+                                : 'Cập nhật tài khoản'}
                         </h3>
-                        <form onSubmit={handleCreateUser} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Tên hiển thị{' '}
-                                    <span className="text-red-500">*</span>
+                        <form
+                            onSubmit={
+                                showAddModal
+                                    ? handleCreateUser
+                                    : handleUpdateUser
+                            }
+                            className="space-y-4"
+                        >
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-bold uppercase text-muted-foreground tracking-wider">
+                                    Họ và tên
                                 </label>
-                                <input
-                                    type="text"
+                                <Input
                                     name="name"
                                     required
                                     value={formData.name}
                                     onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-highlight"
+                                    placeholder="Nhập tên nhân viên"
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Email{' '}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-highlight"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Mật khẩu{' '}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    required
-                                    minLength={6}
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-highlight"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Vai trò
-                                </label>
-                                <select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm outline-none focus:border-highlight"
-                                >
-                                    {rolesList.map((r) => (
-                                        <option key={r} value={r}>
-                                            {r}
-                                        </option>
-                                    ))}
-                                </select>
                             </div>
 
-                            <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-800">
-                                <button
+                            {showAddModal && (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold uppercase text-muted-foreground tracking-wider">
+                                            Email
+                                        </label>
+                                        <Input
+                                            type="email"
+                                            name="email"
+                                            required
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            placeholder="email@eatease.com"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold uppercase text-muted-foreground tracking-wider">
+                                            Mật khẩu
+                                        </label>
+                                        <Input
+                                            type="password"
+                                            name="password"
+                                            required
+                                            minLength={6}
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="******"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold uppercase text-muted-foreground tracking-wider">
+                                        Vai trò
+                                    </label>
+                                    <select
+                                        name="role"
+                                        value={formData.role}
+                                        onChange={handleChange}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-highlight"
+                                    >
+                                        {rolesList.map((r) => (
+                                            <option key={r} value={r}>
+                                                {r}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {!showAddModal && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-bold uppercase text-muted-foreground tracking-wider">
+                                            Trạng thái
+                                        </label>
+                                        <select
+                                            name="status"
+                                            value={formData.status}
+                                            onChange={handleChange}
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-highlight"
+                                        >
+                                            <option value="Active">
+                                                Hoạt động
+                                            </option>
+                                            <option value="Inactive">
+                                                Khóa
+                                            </option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-3 mt-8 pt-6 border-t border-border">
+                                <Button
                                     type="button"
-                                    onClick={() => setShowAddModal(false)}
-                                    className="flex-1 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 font-medium"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setShowAddModal(false);
+                                        setShowEditModal(false);
+                                    }}
+                                    className="flex-1"
                                 >
                                     Hủy
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="flex-1 py-2 rounded-lg bg-primary hover:bg-primary/90 text-black font-semibold disabled:opacity-50"
+                                    className="flex-1 bg-highlight hover:bg-highlight_2 text-white"
                                 >
-                                    Tạo
-                                </button>
+                                    {isSubmitting
+                                        ? 'Đang xử lý...'
+                                        : showAddModal
+                                          ? 'Tạo tài khoản'
+                                          : 'Lưu thay đổi'}
+                                </Button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Modal Edit */}
-            {showEditModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-background border border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
-                        <h3 className="text-xl font-bold text-highlight mb-4">
-                            Cập Nhật Thông Tin
-                        </h3>
-                        <form onSubmit={handleUpdateUser} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Tên hiển thị{' '}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    required
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Vai trò
-                                </label>
-                                <select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm"
-                                >
-                                    {rolesList.map((r) => (
-                                        <option key={r} value={r}>
-                                            {r}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Trạng thái
-                                </label>
-                                <select
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleChange}
-                                    className="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-sm"
-                                >
-                                    <option value="Active">
-                                        Hoạt động (Active)
-                                    </option>
-                                    <option value="Inactive">
-                                        Khóa (Inactive)
-                                    </option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-800">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowEditModal(false)}
-                                    className="flex-1 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 font-medium"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="flex-1 py-2 rounded-lg bg-primary hover:bg-primary/90 text-black font-semibold disabled:opacity-50"
-                                >
-                                    Lưu
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Confirm Danger Modal */}
+            {/* Confirm Modal */}
             {showConfirmModal.show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-background border border-white/10 rounded-xl p-6 w-full max-w-sm shadow-2xl text-center">
-                        <div className="mx-auto w-12 h-12 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4">
-                            <FaExclamationTriangle size={24} />
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-background border-2 border-border rounded-xl p-6 w-full max-w-sm shadow-2xl text-center">
+                        <div
+                            className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                                showConfirmModal.action === 'restore'
+                                    ? 'bg-green-100 text-green-600'
+                                    : 'bg-red-100 text-red-600'
+                            }`}
+                        >
+                            <FaExclamationTriangle size={32} />
                         </div>
-                        <h3 className="text-lg font-bold text-foreground mb-2">
+                        <h3 className="text-xl font-bold mb-2">
                             {showConfirmModal.action === 'soft_delete'
                                 ? 'Đưa vào Thùng rác?'
                                 : showConfirmModal.action === 'restore'
                                   ? 'Khôi phục tài khoản?'
-                                  : 'XÓA VĨNH VIỄN?'}
+                                  : 'Xác nhận xóa vĩnh viễn?'}
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                            {showConfirmModal.action === 'soft_delete'
-                                ? `Bạn có chắc muốn xóa mềm tài khoản ${showConfirmModal.user?.name}? (Tài khoản này sẽ bị đẩy vào thùng rác và không thể đăng nhập)`
-                                : showConfirmModal.action === 'restore'
-                                  ? `Tài khoản ${showConfirmModal.user?.name} sẽ được kích hoạt lại.`
-                                  : `Hành động này KHÔNG THỂ HOÀN TÁC. Tài khoản ${showConfirmModal.user?.name} sẽ biến mất khỏi hệ thống hoàn toàn.`}
+                        <p className="text-sm text-muted-foreground mb-8">
+                            Bạn đang thực hiện thao tác này trên tài khoản{' '}
+                            <span className="font-bold text-foreground">
+                                {showConfirmModal.user?.name}
+                            </span>
+                            .
+                            {showConfirmModal.action === 'hard_delete' &&
+                                ' Hành động này không thể hoàn tác!'}
                         </p>
-
-                        <div className="flex items-center gap-3">
-                            <button
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
                                 onClick={() =>
                                     setShowConfirmModal({
                                         show: false,
@@ -674,26 +768,22 @@ const EmployeeManagementPage = () => {
                                         user: null,
                                     })
                                 }
-                                className="flex-1 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 font-medium transition"
+                                className="flex-1"
                             >
-                                Hủy
-                            </button>
-                            <button
+                                Quay lại
+                            </Button>
+                            <Button
                                 onClick={handleActionConfirm}
                                 disabled={isSubmitting}
-                                className={`flex-1 py-2 rounded-lg font-semibold transition disabled:opacity-50 ${
-                                    showConfirmModal.action === 'restore'
-                                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                                        : 'bg-red-500 hover:bg-red-600 text-white'
-                                }`}
+                                className={`flex-1 ${showConfirmModal.action === 'restore' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white`}
                             >
                                 {isSubmitting ? 'Chờ...' : 'Xác nhận'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </section>
     );
 };
 

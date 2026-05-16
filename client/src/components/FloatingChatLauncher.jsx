@@ -9,6 +9,8 @@ import { useState } from 'react';
 import { Bot, Headphones, MessageCircle, X } from 'lucide-react';
 import AiChatBox from './AiChatBox';
 import SupportChatBox from './SupportChatBox';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 const CHAT_AI = 'ai';
 const CHAT_SUPPORT = 'support';
@@ -16,8 +18,15 @@ const CHAT_SUPPORT = 'support';
 export default function FloatingChatLauncher() {
     const [activeChat, setActiveChat] = useState(null);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const user = useSelector((state) => state.user);
+    const navigate = useNavigate();
 
     const toggle = (type) => {
+        if (type === CHAT_SUPPORT && !user._id) {
+            navigate('/login');
+            setShowMobileMenu(false);
+            return;
+        }
         setActiveChat((prev) => (prev === type ? null : type));
         setShowMobileMenu(false);
     };

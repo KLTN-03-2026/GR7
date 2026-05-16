@@ -261,6 +261,7 @@ const InvoicesTab = () => {
                     subTotal: ob.subTotal || 0,
                     discount: ob.discount || 0,
                     pointsDiscount: ob.pointsDiscount || 0,
+                    paymentMethod: ob.paymentMethod,
                     items: items,
                 };
             })
@@ -784,6 +785,14 @@ const InvoicesTab = () => {
                                             'dd/MM/yyyy HH:mm',
                                             { locale: vi }
                                         )}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">
+                                        Phương thức thanh toán
+                                    </p>
+                                    <p className="font-bold text-highlight_2 uppercase">
+                                        {selectedOrder.paymentMethod === 'cash' ? 'Tiền mặt' : (selectedOrder.paymentMethod === 'stripe' ? 'Stripe' : 'Chưa xác định')}
                                     </p>
                                 </div>
                             </div>

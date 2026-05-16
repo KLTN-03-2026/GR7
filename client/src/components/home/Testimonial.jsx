@@ -7,19 +7,19 @@ const reviews = [
     {
         stars: 5,
         quote: '"Những nét tinh tế trong từng món ăn khiến chúng tôi hoàn toàn bị chinh phục. EatEase thực sự là một trải nghiệm không thể quên."',
-        author: 'Nguyễn Minh Khoa',
-        role: 'Food Critic — Saigon Eats',
+        author: 'Ngô Kim Hoàng Nam',
+        role: 'Food Critic — DaNang Eats',
     },
     {
         stars: 5,
         quote: '"Không gian sang trọng, phục vụ chu đáo và hương vị tuyệt vời. Đây là nhà hàng tôi sẽ quay lại nhiều lần."',
-        author: 'Trần Thị Hoa',
+        author: 'Văn Đức Khiêm',
         role: 'Khách hàng thân thiết',
     },
     {
         stars: 5,
         quote: '"EatEase kết hợp hoàn hảo giữa ẩm thực truyền thống và hiện đại. Một viên ngọc ẩm thực thực sự."',
-        author: 'Lê Văn Đức',
+        author: 'Dương Bá Hoàng Ngọc',
         role: 'Blogger ẩm thực',
     },
 ];
@@ -82,7 +82,9 @@ const TestimonialContent = ({ active, setActive, reviews }) => {
             {/* Stars */}
             <div className="flex gap-1 mb-4">
                 {Array.from({ length: r.stars }).map((_, i) => (
-                    <span key={i} className="text-[#C96048] text-2xl">★</span>
+                    <span key={i} className="text-[#C96048] text-2xl">
+                        ★
+                    </span>
                 ))}
             </div>
 

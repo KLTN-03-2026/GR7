@@ -26,6 +26,8 @@ import { registerSupportChatSocket } from "./socket/supportChat.socket.js";
 import { registerKitchenSocket } from "./socket/kitchen.socket.js";
 import serviceRequestRouter from './route/serviceRequest.route.js';
 import paymentRouter from './route/payment.route.js';
+import reportRouter from './route/report.route.js';
+
 import { handleStripeWebhook } from './controllers/tableOrder.controller.js';
 
 const app = express();
@@ -163,6 +165,7 @@ import orderRouter from './route/order.route.js';
 app.use('/api/order', orderRouter);
 app.use('/api/service-request', serviceRequestRouter);
 app.use('/api/payment', paymentRouter);
+app.use('/api/report', reportRouter);
 
 // Legacy Stripe webhook path (for Stripe CLI and production compatibility)
 app.post('/api/stripe/webhook', handleStripeWebhook);

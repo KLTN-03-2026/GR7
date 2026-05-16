@@ -74,7 +74,7 @@ export function ProductCard({ data }: ProductCardProps) {
                         <img
                             src={data.image[0]}
                             alt={data.name}
-                            className={`w-full p-2 h-44 object-contain bg-white transition-transform duration-700 ${
+                            className={`w-full h-44 object-cover transition-transform duration-700 ${
                                 isHovered ? 'scale-100' : 'scale-100'
                             }`}
                         />

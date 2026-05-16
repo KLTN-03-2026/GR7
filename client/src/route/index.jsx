@@ -31,6 +31,7 @@ import TableOrdersPage from '../pages/TableOrdersPage';
 import BookingManagementPage from '../pages/BookingManagementPage';
 import BookingPage from '../pages/BookingPage';
 import BookingSuccessPage from '../pages/BookingSuccessPage';
+import BookingCancelPage from '../pages/BookingCancelPage';
 import TableLoginPage from '../pages/TableLoginPage';
 import TableMenuPage from '../pages/TableMenuPage';
 import TableOrderManagementPage from '../pages/TableOrderManagementPage';
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
                 ),
             },
             { path: 'booking/success', element: <BookingSuccessPage /> },
+            { path: 'booking/cancel', element: <BookingCancelPage /> },
 
             // === QR TABLE FLOW ===
             { path: 'customer-checkin', element: <CustomerCheckinPage /> },

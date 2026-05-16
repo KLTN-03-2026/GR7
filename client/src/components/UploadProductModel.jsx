@@ -38,7 +38,6 @@ const UploadProductModel = ({ close, fetchData }) => {
         image: [],
         category: [],
         subCategory: [],
-        unit: '',
         stock: 0,
         price: 0,
         discount: 0,
@@ -217,7 +216,6 @@ const UploadProductModel = ({ close, fetchData }) => {
                     image: [],
                     category: [],
                     subCategory: [],
-                    unit: '',
                     stock: '',
                     price: '',
                     discount: '',
@@ -303,10 +301,10 @@ const UploadProductModel = ({ close, fetchData }) => {
                                         ? 'border-green-300 bg-green-100/50'
                                         : 'border-gray-300 hover:border-red-500'
                                 } ${
-                                        !data.name || loading
-                                            ? 'opacity-70 cursor-not-allowed'
-                                            : 'cursor-pointer'
-                                    }`}
+                                    !data.name || loading
+                                        ? 'opacity-70 cursor-not-allowed'
+                                        : 'cursor-pointer'
+                                }`}
                                     title={
                                         !data.name
                                             ? 'Vui lòng nhập tên sản phẩm trước'
@@ -578,25 +576,6 @@ const UploadProductModel = ({ close, fetchData }) => {
                             )}
                         </div>
 
-                        {/* Unit */}
-                        <div className="space-y-2">
-                            <Label htmlFor="unit">
-                                Đơn vị tính{' '}
-                                <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                type="text"
-                                id="unit"
-                                name="unit"
-                                value={data.unit}
-                                onChange={handleOnChange}
-                                className="text-sm h-12"
-                                placeholder="Ví dụ: cái, thiết bị, bộ..."
-                                spellCheck={false}
-                                required
-                                onKeyDown={handleKeyDown}
-                            />
-                        </div>
                         {/* Stock */}
                         <div className="space-y-2">
                             <Label htmlFor="stock">
@@ -852,7 +831,6 @@ const UploadProductModel = ({ close, fetchData }) => {
                                         !data.name ||
                                         !data.image[0] ||
                                         !data.category[0] ||
-                                        !data.unit ||
                                         !data.stock ||
                                         !data.price ||
                                         loading
