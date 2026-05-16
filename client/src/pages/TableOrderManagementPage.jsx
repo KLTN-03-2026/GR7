@@ -113,7 +113,8 @@ function OnlineBillPreviewModal({
                     <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Tạm tính:</span>
                         <span>
-                            {(tableOrder.subTotal || 0).toLocaleString('vi-VN')}đ
+                            {(tableOrder.subTotal || 0).toLocaleString('vi-VN')}
+                            đ
                         </span>
                     </div>
                     {tableOrder.discount > 0 && (
@@ -128,7 +129,8 @@ function OnlineBillPreviewModal({
                         <div className="flex justify-between text-sm text-blue-600 dark:text-blue-400">
                             <span>Giảm giá (Điểm):</span>
                             <span>
-                                -{tableOrder.pointsDiscount.toLocaleString(
+                                -
+                                {tableOrder.pointsDiscount.toLocaleString(
                                     'vi-VN'
                                 )}
                                 đ
@@ -304,25 +306,25 @@ const TableOrderManagementPage = () => {
         }
     };
 
-    const handleCancelOrder = async () => {
-        if (!window.confirm('Bạn có chắc muốn hủy đơn hàng?')) {
-            return;
-        }
+    // const handleCancelOrder = async () => {
+    //     if (!window.confirm('Bạn có chắc muốn hủy đơn hàng?')) {
+    //         return;
+    //     }
 
-        try {
-            const response = await Axios({
-                ...SummaryApi.cancel_table_order,
-            });
+    //     try {
+    //         const response = await Axios({
+    //             ...SummaryApi.cancel_table_order,
+    //         });
 
-            if (response.data.success) {
-                toast.success('Đã hủy đơn hàng');
-                navigate('/table-menu');
-            }
-        } catch (error) {
-            console.error('Error cancelling order:', error);
-            toast.error('Không thể hủy đơn');
-        }
-    };
+    //         if (response.data.success) {
+    //             toast.success('Đã hủy đơn hàng');
+    //             navigate('/table-menu');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error cancelling order:', error);
+    //         toast.error('Không thể hủy đơn');
+    //     }
+    // };
 
     const handleCallWaiter = async () => {
         if (callCooldown) {
@@ -562,7 +564,8 @@ const TableOrderManagementPage = () => {
                     <div className="flex justify-between text-base md:text-sm text-muted-foreground">
                         <span>Tạm tính:</span>
                         <span>
-                            {(tableOrder.subTotal || 0).toLocaleString('vi-VN')}đ
+                            {(tableOrder.subTotal || 0).toLocaleString('vi-VN')}
+                            đ
                         </span>
                     </div>
 
@@ -579,7 +582,8 @@ const TableOrderManagementPage = () => {
                         <div className="flex justify-between text-base md:text-sm text-blue-600 dark:text-blue-400">
                             <span>Giảm giá (Điểm):</span>
                             <span>
-                                -{tableOrder.pointsDiscount.toLocaleString(
+                                -
+                                {tableOrder.pointsDiscount.toLocaleString(
                                     'vi-VN'
                                 )}
                                 đ
@@ -761,13 +765,13 @@ const TableOrderManagementPage = () => {
                         Tiếp tục gọi món
                     </button>
 
-                    <button
+                    {/* <button
                         onClick={handleCancelOrder}
                         className="w-full bg-gray-400 dark:bg-gray-700 text-white py-4 md:py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-500 dark:hover:bg-gray-600 transition-all active:scale-95"
                     >
                         <FiX size={22} className="md:text-[20px]" />
                         Hủy đơn
-                    </button>
+                    </button> */}
                 </div>
             </div>
         </div>
