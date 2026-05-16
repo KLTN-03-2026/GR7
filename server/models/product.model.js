@@ -40,7 +40,7 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
-    
+
     stock: {
         type: Number,
         default: null, // null = không giới hạn
@@ -89,7 +89,7 @@ const productSchema = new mongoose.Schema({
 })
 
 // Middleware: Tự động cập nhật status dựa trên stock
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function (next) {
     // Chỉ tự động cập nhật nếu không phải 'seasonal'
     if (this.status !== 'seasonal') {
         if (this.stock === null) {

@@ -40,7 +40,7 @@ const ConfirmBox = ({
                     </Button>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                    <p className="text-sm font-medium">{message}</p>
+                    <p className="text-sm font-medium whitespace-pre-line">{message}</p>
                     <div className="flex gap-4 w-fit ml-auto">
                         <div>
                             <GlareHover

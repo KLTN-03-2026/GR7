@@ -119,7 +119,7 @@ export default function AiChatBox({ isOpen = false, onClose }) {
             className={`fixed z-50 flex flex-col transition-all duration-300 ease-out
                         bg-card dark:bg-gray-900 border border-border
                         ${isMinimized ? 'h-14' : 'h-[540px] md:h-[540px]'}
-                        
+
                         /* Mobile: fullscreen */
                         inset-0 md:inset-auto
                         rounded-none md:rounded-2xl

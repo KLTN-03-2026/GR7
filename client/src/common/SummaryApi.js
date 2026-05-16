@@ -159,6 +159,18 @@ const SummaryApi = {
         url: '/api/product/search-product',
         method: 'post'
     },
+    get_deleted_product: {
+        url: '/api/product/get-deleted-product',
+        method: 'post'
+    },
+    restore_product: {
+        url: '/api/product/restore-product',
+        method: 'put'
+    },
+    hard_delete_product: {
+        url: '/api/product/hard-delete-product',
+        method: 'delete'
+    },
 
     // Customer (Loyalty / QR Checkin)
     customer_checkin: {
@@ -402,6 +414,10 @@ const SummaryApi = {
     // Reports & Analytics
     booking_report: {
         url: '/api/booking/report',
+        method: 'get'
+    },
+    dashboard_stats: {
+        url: '/api/report/dashboard-stats',
         method: 'get'
     },
     customer_analytics: {

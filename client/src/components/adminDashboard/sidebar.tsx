@@ -117,7 +117,7 @@ const navigationSections: NavigationSection[] = [
         roles: ['ADMIN'],
         items: [
             {
-                name: 'Nhân viên',
+                name: 'Tài khoản hệ thống',
                 href: '/dashboard/employee-management',
                 icon: Users,
             },
@@ -429,7 +429,11 @@ export function Sidebar() {
                                         item.roles.includes(user.role)
                                 )
                                 .map((item) => (
-                                    <NavItem key={item.name} item={item} isBottom />
+                                    <NavItem
+                                        key={item.name}
+                                        item={item}
+                                        isBottom
+                                    />
                                 ))}
                         </nav>
                     </div>

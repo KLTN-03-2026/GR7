@@ -27,6 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductManagementCart from '../components/ProductManagementCart';
 
 const ProductManagementPage = () => {
@@ -44,6 +45,9 @@ const ProductManagementPage = () => {
         category: 'all',
     });
     const [openUploadProduct, setOpenUploadProduct] = useState(false);
+    const [activeTab, setActiveTab] = useState('active'); // 'active' | 'deleted'
+    const [activeCount, setActiveCount] = useState(0);
+    const [deletedCount, setDeletedCount] = useState(0);
 
     // Fetch categories
     const fetchCategories = useCallback(async () => {
@@ -100,14 +104,54 @@ const ProductManagementPage = () => {
                     }
                 });
 
+                const api =
+                    activeTab === 'active'
+                        ? SummaryApi.get_product
+                        : SummaryApi.get_deleted_product;
+
                 const response = await Axios({
-                    ...SummaryApi.get_product,
+                    ...api,
                     data: requestData,
                 });
 
                 if (response.data.success) {
-                    setTotalPageCount(response.data.totalNoPage);
+                    setTotalPageCount(response.data.totalNoPage || 1);
                     setProductData(response.data.data);
+
+                    if (activeTab === 'active') {
+                        setActiveCount(response.data.totalCount || 0);
+                    } else {
+                        setDeletedCount(response.data.totalCount || 0);
+                    }
+                }
+
+                // Fetch count for the other tab to keep UI counts in sync
+                try {
+                    const otherApi =
+                        activeTab === 'active'
+                            ? SummaryApi.get_deleted_product
+                            : SummaryApi.get_product;
+                    const otherResponse = await Axios({
+                        ...otherApi,
+                        data: {
+                            page: 1,
+                            limit: 1,
+                            search: searchTerm.trim(),
+                            category:
+                                filterValues.category !== 'all'
+                                    ? filterValues.category
+                                    : undefined,
+                        },
+                    });
+                    if (otherResponse.data.success) {
+                        if (activeTab === 'active') {
+                            setDeletedCount(otherResponse.data.totalCount || 0);
+                        } else {
+                            setActiveCount(otherResponse.data.totalCount || 0);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error fetching other tab count:', err);
                 }
             } catch (error) {
                 AxiosToastError(error);
@@ -115,7 +159,7 @@ const ProductManagementPage = () => {
                 setLoading(false);
             }
         },
-        [search, filters, page]
+        [search, filters, page, activeTab]
     );
 
     // Reset all filters
@@ -180,7 +224,7 @@ const ProductManagementPage = () => {
         fetchCategories();
         fetchProduct();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [activeTab]);
 
     const handleNextPage = () => {
         if (page < totalPageCount) {
@@ -349,10 +393,29 @@ const ProductManagementPage = () => {
                     </Button>
                 </GlareHover>
 
+                {/* Tabs */}
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(value) => {
+                        setActiveTab(value);
+                        setPage(1);
+                    }}
+                    className="w-full md:w-auto"
+                >
+                    <TabsList className="grid grid-cols-2 w-full md:w-[300px] h-11">
+                        <TabsTrigger value="active" className="font-bold uppercase">
+                            Món ăn ({activeCount})
+                        </TabsTrigger>
+                        <TabsTrigger value="deleted" className="font-bold uppercase">
+                            Đã xóa ({deletedCount})
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+
                 {/* Search */}
                 <div
                     className="text-foreground h-11 max-w-72 w-full min-w-16 lg:min-w-24 bg-background/80 border border-muted-foreground px-4
-                flex items-center gap-3 rounded-xl shadow-md shadow-secondary-100 focus-within:border-lime-200"
+                flex items-center gap-3 rounded-xl shadow-md shadow-secondary-100 focus-within:border-lime-200 ml-auto"
                 >
                     <IoSearch size={22} className="mb-[3px] sm:block hidden" />
                     <IoSearch

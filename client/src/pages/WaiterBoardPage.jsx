@@ -14,6 +14,8 @@ import {
     FiX,
     FiMessageCircle,
     FiSend,
+    FiMaximize,
+    FiMinimize,
 } from 'react-icons/fi';
 import { MdTableRestaurant } from 'react-icons/md';
 import { BsBellFill, BsChatDots } from 'react-icons/bs';
@@ -54,6 +56,9 @@ export default function WaiterBoardPage() {
     const [handlingId, setHandlingId] = useState(null);
     const [tableOrders, setTableOrders] = useState([]);
     const [cancelingId, setCancelingId] = useState(null);
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    const toggleExpanded = () => setIsExpanded(!isExpanded);
 
     // Search states
     const [searchTableQuery, setSearchTableQuery] = useState('');
@@ -530,19 +535,25 @@ export default function WaiterBoardPage() {
     }, {});
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            {/* Header */}
+        <div
+            className={`h-full bg-background text-foreground transition-all duration-300 animate-in fade-in ${
+                isExpanded
+                    ? 'fixed inset-0 z-[9999] overflow-y-auto w-full h-full'
+                    : 'relative'
+            }`}
+        >
+            {/* Header - Liquid Glass Style */}
             <div
-                className="border-b border-border px-6 py-4 sticky top-0 z-10 shadow-sm"
+                className="bg-card border-b-2 border-border px-4 py-3 sticky top-0 z-20 w-full shadow-md"
                 style={{
-                    background: 'rgba(var(--card-rgb), 0.95)',
-                    backdropFilter: 'blur(12px)',
+                    background: 'rgba(var(--card-rgb, 255, 255, 255), 0.9)',
+                    backdropFilter: 'blur(20px)',
                 }}
             >
                 <div className="mx-auto flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center"
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-highlight/20"
                             style={{
                                 background:
                                     'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
@@ -551,76 +562,64 @@ export default function WaiterBoardPage() {
                             <MdTableRestaurant className="text-white text-xl" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold leading-none">
-                                Waiter Dashboard
+                            <h1 className="text-xl font-bold uppercase tracking-tight text-highlight leading-none">
+                                Waiter Board
                             </h1>
-                            <p className="text-muted-foreground text-xs mt-0.5">
-                                {clock.toLocaleString('vi-VN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                })}
+                            <p className="text-muted-foreground text-xs font-semibold tracking-wide mt-1 flex items-center gap-2">
+                                <span className="uppercase">
+                                    {clock.toLocaleString('vi-VN', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        weekday: 'short',
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                    })}
+                                </span>
+                                <span className="text-border">|</span>
+                                <span className="text-highlight font-bold">
+                                    {user?.name || 'Nhân viên'}
+                                </span>
                             </p>
                         </div>
                     </div>
 
-                    {/* Stats */}
-                    <div className="hidden sm:flex items-center gap-4">
-                        <div className="text-center">
-                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <UtensilsCrossed
-                                    className="w-5 h-5"
-                                    style={{ color: '#C96048' }}
-                                />
-                                <p
-                                    className="text-2xl font-bold"
-                                    style={{ color: '#C96048' }}
-                                >
+                    <div className="hidden lg:flex items-center gap-2 md:gap-6">
+                        <div className="text-center group">
+                            <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                                <UtensilsCrossed className="w-4 h-4 text-highlight" />
+                                <p className="text-xl font-bold text-highlight">
                                     {items.length}
                                 </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] font-semibold uppercase text-muted-foreground group-hover:text-highlight transition-colors">
                                 Chờ phục vụ
                             </p>
                         </div>
-                        <div className="h-8 w-px bg-border" />
-                        <div className="text-center">
-                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <Users className="w-5 h-5 text-foreground" />
-                                <p className="text-2xl font-bold text-foreground">
-                                    {Object.keys(grouped).length}
+                        <div className="h-6 w-px bg-border/50" />
+                        <div className="text-center group">
+                            <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                                <Users className="w-4 h-4 text-blue-500" />
+                                <p className="text-xl font-bold text-blue-500">
+                                    {tableOrders.length}
                                 </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">Bàn</p>
+                            <p className="text-[10px] font-semibold uppercase text-muted-foreground group-hover:text-blue-500 transition-colors">
+                                Hoạt động
+                            </p>
                         </div>
                         {serviceRequests.length > 0 && (
                             <>
-                                <div className="h-8 w-px bg-border" />
-                                <div className="text-center">
-                                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                                        <FiBell className="w-5 h-5 text-orange-500 dark:text-orange-400 animate-bounce" />
-                                        <p className="text-2xl font-bold text-orange-500 dark:text-orange-400 animate-bounce">
+                                <div className="h-6 w-px bg-border/50" />
+                                <div className="text-center group">
+                                    <div className="flex items-center justify-center gap-1.5 mb-0.5 animate-bounce">
+                                        <FiBell className="w-4 h-4 text-orange-500" />
+                                        <p className="text-xl font-bold text-orange-500">
                                             {serviceRequests.length}
                                         </p>
                                     </div>
-                                    <p className="text-xs text-orange-600 dark:text-orange-500">
-                                        Gọi phục vụ
-                                    </p>
-                                </div>
-                            </>
-                        )}
-                        {chatRequests.length > 0 && (
-                            <>
-                                <div className="h-8 w-px bg-border" />
-                                <div className="text-center">
-                                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                                        <BsChatDots className="w-5 h-5 text-blue-500 dark:text-blue-400 animate-bounce" />
-                                        <p className="text-2xl font-bold text-blue-500 dark:text-blue-400 animate-bounce">
-                                            {chatRequests.length}
-                                        </p>
-                                    </div>
-                                    <p className="text-xs text-blue-600 dark:text-blue-500">
-                                        Chat mới
+                                    <p className="text-[10px] font-semibold uppercase text-muted-foreground group-hover:text-orange-500 transition-colors">
+                                        Yêu cầu
                                     </p>
                                 </div>
                             </>
@@ -628,187 +627,209 @@ export default function WaiterBoardPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {/* Notification Bell */}
-                        <div className="relative">
-                            <button
-                                onClick={() =>
-                                    setShowNotifications(!showNotifications)
-                                }
-                                className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-card hover:bg-accent border border-border transition text-foreground active:scale-95"
-                            >
-                                <FiBell size={18} />
-                                {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                                        {unreadCount > 9 ? '9+' : unreadCount}
-                                    </span>
-                                )}
-                            </button>
+                        {/* Status indicators */}
+                        <div
+                            className={`hidden md:flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border shadow-sm ${
+                                connected
+                                    ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                                    : 'bg-red-500/10 text-red-600 border-red-500/20'
+                            }`}
+                        >
+                            <div
+                                className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
+                            />
+                            {connected ? 'Live' : 'Offline'}
+                        </div>
 
-                            {/* Notification Dropdown */}
-                            {showNotifications && (
-                                <div
-                                    className="absolute right-0 mt-2 w-80 rounded-xl shadow-2xl border border-border overflow-hidden z-50"
-                                    style={{
-                                        background:
-                                            'rgba(var(--card-rgb), 0.98)',
-                                        backdropFilter: 'blur(12px)',
-                                    }}
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                            {/* Chat Notification Bell */}
+                            <div className="relative">
+                                <button
+                                    onClick={() =>
+                                        setShowNotifications(!showNotifications)
+                                    }
+                                    className={`flex items-center justify-center liquid-glass hover:bg-accent border-2 w-10 h-10 rounded-xl transition-all active:scale-90 relative ${
+                                        unreadCount > 0
+                                            ? 'border-blue-500/50 bg-blue-500/5 text-blue-500'
+                                            : 'border-border'
+                                    }`}
                                 >
-                                    <div
-                                        className="px-4 py-3 flex items-center justify-between"
-                                        style={{
-                                            background:
-                                                'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                                        }}
-                                    >
-                                        <h3 className="font-bold text-white">
-                                            Thông báo Chat
-                                        </h3>
-                                        <button
-                                            onClick={() =>
-                                                setShowNotifications(false)
-                                            }
-                                            className="text-white/80 hover:text-white transition"
+                                    <FiMessageCircle size={18} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-background animate-pulse">
+                                            {unreadCount > 9
+                                                ? '9+'
+                                                : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* Notification Dropdown - Liquid Glass */}
+                                {showNotifications && (
+                                    <div className="absolute right-0 mt-3 w-80 liquid-glass border-2 border-border rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+                                        <div
+                                            className="px-4 py-3 flex items-center justify-between"
+                                            style={{
+                                                background:
+                                                    'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                            }}
                                         >
-                                            <FiX size={18} />
-                                        </button>
-                                    </div>
-                                    <div className="max-h-96 overflow-y-auto custom-scrollbar">
-                                        {/* Pending requests chưa ai nhận */}
-                                        {chatRequests.length > 0 && (
-                                            <>
-                                                <p className="px-4 pt-3 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                                                    Yêu cầu chờ
-                                                </p>
-                                                {chatRequests.map((req) => (
-                                                    <div
-                                                        key={req.conversationId}
-                                                        onClick={() => {
-                                                            acceptChatRequest(
-                                                                req.conversationId
-                                                            );
-                                                            setShowNotifications(
-                                                                false
-                                                            );
-                                                        }}
-                                                        className="px-4 py-3 border-b border-border hover:bg-blue-50 dark:hover:bg-blue-950/20 cursor-pointer transition"
-                                                    >
-                                                        <div className="flex items-center justify-between mb-1">
-                                                            <p className="font-semibold text-foreground flex items-center gap-1.5">
-                                                                <BsChatDots
-                                                                    className="text-blue-500"
-                                                                    size={13}
-                                                                />
-                                                                {
-                                                                    req.customerName
-                                                                }
-                                                            </p>
-                                                            <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">
-                                                                Mới
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Nhấn để nhận yêu cầu
-                                                            hỗ trợ
-                                                        </p>
-                                                    </div>
-                                                ))}
-                                            </>
-                                        )}
-                                        {/* Conversations đã nhận, có tin chưa đọc */}
-                                        {myConversations.filter(
-                                            (c) => c.unread > 0
-                                        ).length > 0 && (
-                                            <>
-                                                <p className="px-4 pt-3 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                                                    Tin chưa đọc
-                                                </p>
-                                                {myConversations
-                                                    .filter((c) => c.unread > 0)
-                                                    .map((conv) => (
+                                            <h3 className="font-bold text-white text-sm uppercase tracking-tight">
+                                                Thông báo hỗ trợ
+                                            </h3>
+                                            <button
+                                                onClick={() =>
+                                                    setShowNotifications(false)
+                                                }
+                                                className="text-white/80 hover:text-white transition"
+                                            >
+                                                <FiX size={18} />
+                                            </button>
+                                        </div>
+                                        <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                                            {chatRequests.length > 0 && (
+                                                <>
+                                                    <p className="px-4 pt-3 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                        Yêu cầu chờ
+                                                    </p>
+                                                    {chatRequests.map((req) => (
                                                         <div
                                                             key={
-                                                                conv.conversationId
+                                                                req.conversationId
                                                             }
                                                             onClick={() => {
-                                                                openChat(
-                                                                    conv.conversationId
+                                                                acceptChatRequest(
+                                                                    req.conversationId
                                                                 );
                                                                 setShowNotifications(
                                                                     false
                                                                 );
                                                             }}
-                                                            className="px-4 py-3 border-b border-border hover:bg-accent cursor-pointer transition"
+                                                            className="px-4 py-3 border-b border-border hover:bg-blue-50 dark:hover:bg-blue-950/20 cursor-pointer transition"
                                                         >
                                                             <div className="flex items-center justify-between mb-1">
-                                                                <p className="font-semibold text-foreground">
+                                                                <p className="font-bold text-foreground flex items-center gap-1.5">
+                                                                    <BsChatDots
+                                                                        className="text-blue-500"
+                                                                        size={
+                                                                            13
+                                                                        }
+                                                                    />
                                                                     {
-                                                                        conv.customerName
+                                                                        req.customerName
                                                                     }
                                                                 </p>
-                                                                <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
-                                                                    {
-                                                                        conv.unread
-                                                                    }
+                                                                <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">
+                                                                    Mới
                                                                 </span>
                                                             </div>
-                                                            <p className="text-sm text-muted-foreground truncate">
-                                                                {conv
-                                                                    .messages?.[
-                                                                    conv
-                                                                        .messages
-                                                                        .length -
-                                                                        1
-                                                                ]?.text ||
-                                                                    'Tin nhắn mới'}
+                                                            <p className="text-xs text-muted-foreground italic">
+                                                                Nhấn để nhận yêu
+                                                                cầu hỗ trợ
                                                             </p>
                                                         </div>
                                                     ))}
-                                            </>
-                                        )}
-                                        {chatRequests.length === 0 &&
-                                            myConversations.filter(
-                                                (c) => c.unread > 0
-                                            ).length === 0 && (
-                                                <div className="p-6 text-center text-muted-foreground">
-                                                    <FiBell
-                                                        size={32}
-                                                        className="mx-auto mb-2 opacity-30"
-                                                    />
-                                                    <p className="text-sm">
-                                                        Không có thông báo mới
-                                                    </p>
-                                                </div>
+                                                </>
                                             )}
+                                            {myConversations.filter(
+                                                (c) => c.unread > 0
+                                            ).length > 0 && (
+                                                <>
+                                                    <p className="px-4 pt-3 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                        Tin chưa đọc
+                                                    </p>
+                                                    {myConversations
+                                                        .filter(
+                                                            (c) => c.unread > 0
+                                                        )
+                                                        .map((conv) => (
+                                                            <div
+                                                                key={
+                                                                    conv.conversationId
+                                                                }
+                                                                onClick={() => {
+                                                                    openChat(
+                                                                        conv.conversationId
+                                                                    );
+                                                                    setShowNotifications(
+                                                                        false
+                                                                    );
+                                                                }}
+                                                                className="px-4 py-3 border-b border-border hover:bg-accent cursor-pointer transition"
+                                                            >
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <p className="font-bold text-foreground">
+                                                                        {
+                                                                            conv.customerName
+                                                                        }
+                                                                    </p>
+                                                                    <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
+                                                                        {
+                                                                            conv.unread
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-muted-foreground truncate">
+                                                                    {conv
+                                                                        .messages?.[
+                                                                        conv
+                                                                            .messages
+                                                                            .length -
+                                                                            1
+                                                                    ]?.text ||
+                                                                        'Tin nhắn mới'}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                </>
+                                            )}
+                                            {chatRequests.length === 0 &&
+                                                myConversations.filter(
+                                                    (c) => c.unread > 0
+                                                ).length === 0 && (
+                                                    <div className="p-6 text-center text-muted-foreground">
+                                                        <FiBell
+                                                            size={32}
+                                                            className="mx-auto mb-2 opacity-30"
+                                                        />
+                                                        <p className="text-xs italic uppercase font-bold tracking-widest">
+                                                            Không có thông báo
+                                                        </p>
+                                                    </div>
+                                                )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        <div
-                            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
-                                connected
-                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                                    : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                            }`}
-                        >
-                            {connected ? (
-                                <FiWifi size={12} />
-                            ) : (
-                                <FiWifiOff size={12} />
-                            )}
-                            {connected ? 'Real-time' : 'Offline'}
+                            <button
+                                onClick={toggleExpanded}
+                                className="flex items-center justify-center liquid-glass hover:bg-accent border-2 border-border w-10 h-10 rounded-xl transition-all active:scale-90"
+                            >
+                                {isExpanded ? (
+                                    <FiMinimize size={18} />
+                                ) : (
+                                    <FiMaximize size={18} />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    fetchReadyItems();
+                                    fetchServiceRequests();
+                                    fetchTableOrders();
+                                }}
+                                className="flex items-center gap-2 liquid-glass hover:bg-accent border-2 border-border px-3 py-2 h-10 rounded-xl transition-all text-xs font-semibold uppercase tracking-wide active:scale-90"
+                            >
+                                <FiRefreshCw
+                                    size={14}
+                                    className={loading ? 'animate-spin' : ''}
+                                />
+                                <span className="hidden md:inline">
+                                    Làm mới
+                                </span>
+                            </button>
                         </div>
-                        <button
-                            onClick={() => {
-                                fetchReadyItems();
-                                fetchServiceRequests();
-                                fetchTableOrders();
-                            }}
-                            className="flex items-center gap-2 bg-card hover:bg-accent border border-border px-3 py-2 rounded-xl transition text-sm text-foreground active:scale-95"
-                        >
-                            <FiRefreshCw size={14} /> Làm mới
-                        </button>
                     </div>
                 </div>
             </div>
@@ -817,19 +838,23 @@ export default function WaiterBoardPage() {
             <div className="mx-auto p-6 space-y-8">
                 {/* Chat Requests Panel */}
                 {chatRequests.length > 0 && (
-                    <div>
-                        <h2 className="text-lg font-bold text-blue-500 dark:text-blue-400 mb-3 flex items-center gap-2">
-                            <BsChatDots className="animate-bounce" /> Yêu cầu
-                            Chat ({chatRequests.length})
-                        </h2>
+                    <div className="mb-8">
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <h2 className="text-lg font-bold text-blue-500 uppercase tracking-tight flex items-center gap-2.5">
+                                <div className="p-2 bg-blue-500/10 rounded-lg">
+                                    <BsChatDots className="animate-bounce" />
+                                </div>
+                                Yêu cầu Chat ({chatRequests.length})
+                            </h2>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {chatRequests.map((req) => (
                                 <div
                                     key={req.conversationId}
-                                    className="rounded-2xl p-4 flex flex-col gap-3 border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                    className="rounded-2xl p-5 flex flex-col gap-4 border-2 border-blue-500/30 transition-all hover:shadow-xl hover:shadow-blue-500/10 active:scale-[0.99] liquid-glass"
                                     style={{
                                         background:
-                                            'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%)',
+                                            'rgba(var(--card-rgb, 255, 255, 255), 0.8)',
                                     }}
                                 >
                                     <div className="flex items-start justify-between">
@@ -875,20 +900,23 @@ export default function WaiterBoardPage() {
 
                 {/* My Conversations Panel */}
                 {myConversations.length > 0 && (
-                    <div>
-                        <h2 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
-                            <FiMessageCircle /> Chat của tôi (
-                            {myConversations.length})
-                        </h2>
+                    <div className="mb-8">
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <h2 className="text-lg font-bold text-highlight uppercase tracking-tight flex items-center gap-2.5">
+                                <div className="p-2 bg-highlight/10 rounded-lg">
+                                    <FiMessageCircle />
+                                </div>
+                                Chat của tôi ({myConversations.length})
+                            </h2>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {myConversations.map((conv) => (
                                 <div
                                     key={conv.conversationId}
-                                    className="rounded-2xl p-4 flex flex-col gap-3 border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                    className="rounded-2xl p-5 flex flex-col gap-4 border-2 border-border transition-all hover:shadow-xl hover:shadow-highlight/10 active:scale-[0.99] liquid-glass"
                                     style={{
                                         background:
-                                            'rgba(var(--card-rgb), 0.98)',
-                                        backdropFilter: 'blur(12px)',
+                                            'rgba(var(--card-rgb, 255, 255, 255), 0.8)',
                                     }}
                                 >
                                     <div className="flex items-start justify-between">
@@ -940,19 +968,23 @@ export default function WaiterBoardPage() {
 
                 {/* Service Requests Panel */}
                 {serviceRequests.length > 0 && (
-                    <div>
-                        <h2 className="text-lg font-bold text-orange-600 dark:text-orange-400 mb-3 flex items-center gap-2">
-                            <FiBell className="animate-bounce" /> Yêu cầu gọi
-                            phục vụ ({serviceRequests.length})
-                        </h2>
+                    <div className="mb-8">
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <h2 className="text-lg font-bold text-orange-500 uppercase tracking-tight flex items-center gap-2.5">
+                                <div className="p-2 bg-orange-500/10 rounded-lg">
+                                    <FiBell className="animate-bounce" />
+                                </div>
+                                Yêu cầu gọi phục vụ ({serviceRequests.length})
+                            </h2>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {serviceRequests.map((req) => (
                                 <div
                                     key={req._id}
-                                    className="rounded-2xl p-4 flex flex-col gap-3 border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                    className="rounded-2xl p-5 flex flex-col gap-4 border-2 border-orange-500/30 transition-all hover:shadow-xl hover:shadow-orange-500/10 active:scale-[0.99] liquid-glass"
                                     style={{
                                         background:
-                                            'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.08) 100%)',
+                                            'rgba(var(--card-rgb, 255, 255, 255), 0.8)',
                                     }}
                                 >
                                     <div className="flex items-start justify-between">
@@ -1019,45 +1051,46 @@ export default function WaiterBoardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* LEFT COLUMN: Đơn đang chạy theo bàn */}
                     <div className="flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                            <h2
-                                className="text-lg font-bold flex items-center gap-2"
-                                style={{ color: '#C96048' }}
-                            >
-                                <MdTableRestaurant className="w-6 h-6" /> Đơn
-                                đang chạy
-                                <span className="text-sm font-normal text-muted-foreground">
-                                    ({tableOrders.length} bàn)
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-highlight/10 rounded-lg text-highlight">
+                                    <MdTableRestaurant className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-lg font-bold uppercase tracking-tight">
+                                    Đơn đang chạy
+                                </h2>
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-highlight text-white shadow-sm">
+                                    {tableOrders.length}
                                 </span>
-                            </h2>
+                            </div>
                         </div>
 
                         {/* Search for tables */}
-                        {tableOrders.length > 0 && (
-                            <div className="mb-3">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={searchTableQuery}
-                                        onChange={(e) =>
-                                            setSearchTableQuery(e.target.value)
-                                        }
-                                        placeholder="🔍 Tìm bàn..."
-                                        className="w-full px-3 py-2 pr-8 rounded-lg text-sm border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
-                                    />
-                                    {searchTableQuery && (
-                                        <button
-                                            onClick={() =>
-                                                setSearchTableQuery('')
-                                            }
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <FiX size={16} />
-                                        </button>
-                                    )}
-                                </div>
+                        <div className="mb-4">
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={searchTableQuery}
+                                    onChange={(e) =>
+                                        setSearchTableQuery(e.target.value)
+                                    }
+                                    placeholder="TÌM BÀN..."
+                                    className="w-full pl-10 pr-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border-2 border-border bg-card focus:border-highlight focus:outline-none transition-all shadow-sm"
+                                />
+                                <MdTableRestaurant
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-highlight transition-colors"
+                                    size={18}
+                                />
+                                {searchTableQuery && (
+                                    <button
+                                        onClick={() => setSearchTableQuery('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-highlight transition-colors"
+                                    >
+                                        <FiX size={18} />
+                                    </button>
+                                )}
                             </div>
-                        )}
+                        </div>
 
                         <div
                             className="overflow-y-auto space-y-3 pr-2 custom-scrollbar"
@@ -1085,29 +1118,25 @@ export default function WaiterBoardPage() {
                                     .map((order) => (
                                         <div
                                             key={order._id}
-                                            className="rounded-2xl overflow-hidden border border-border transition-all hover:shadow-lg active:scale-[0.99]"
+                                            className="rounded-2xl overflow-hidden border-2 border-border transition-all hover:shadow-xl hover:border-highlight/30 active:scale-[0.99] liquid-glass"
                                             style={{
                                                 background:
-                                                    'rgba(var(--card-rgb), 0.98)',
-                                                backdropFilter: 'blur(12px)',
+                                                    'rgba(var(--card-rgb, 255, 255, 255), 0.8)',
                                             }}
                                         >
                                             {/* Table header */}
                                             <div
-                                                className="px-4 py-3 flex items-center justify-between border-b border-border"
+                                                className="px-5 py-4 flex items-center justify-between border-b-2 border-border"
                                                 style={{
                                                     background:
-                                                        'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
+                                                        'linear-gradient(135deg, rgba(201, 96, 72, 0.1) 0%, rgba(217, 122, 102, 0.05) 100%)',
                                                 }}
                                             >
-                                                <h3
-                                                    className="font-bold flex items-center gap-2"
-                                                    style={{ color: '#C96048' }}
-                                                >
+                                                <h3 className="font-bold flex items-center gap-2.5 text-highlight uppercase tracking-tight">
                                                     <MdTableRestaurant className="w-5 h-5" />{' '}
                                                     Bàn {order.tableNumber}
                                                 </h3>
-                                                <span className="text-xs text-muted-foreground">
+                                                <span className="text-[10px] font-bold uppercase px-2.5 py-1 bg-highlight/10 text-highlight rounded-lg border border-highlight/20">
                                                     {order.items.length} món
                                                 </span>
                                             </div>
@@ -1141,54 +1170,77 @@ export default function WaiterBoardPage() {
                                                     return (
                                                         <div
                                                             key={item._id}
-                                                            className="flex items-center justify-between gap-2 bg-accent/50 rounded-xl px-3 py-2 border border-border"
+                                                            className="flex items-center justify-between gap-4 bg-accent/30 rounded-2xl px-4 py-3 border-2 border-border/50 hover:border-highlight/30 transition-all group/item"
                                                         >
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-sm truncate text-foreground">
+                                                                <div className="mb-1">
+                                                                    <span className="text-[11px] font-bold font-mono px-2 py-0.5 bg-muted rounded text-muted-foreground border border-border">
+                                                                        #
+                                                                        {item.productId
+                                                                            ?.slice(
+                                                                                -4
+                                                                            )
+                                                                            .toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="font-bold text-sm uppercase tracking-tight text-foreground group-hover/item:text-highlight transition-colors leading-tight mb-1">
                                                                     {item.name}
                                                                 </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    x
-                                                                    {
-                                                                        item.quantity
-                                                                    }{' '}
-                                                                    ·{' '}
-                                                                    {item.price.toLocaleString(
-                                                                        'vi-VN'
-                                                                    )}
-                                                                    đ
+                                                                <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                                                                    <span className="text-highlight">
+                                                                        x
+                                                                        {
+                                                                            item.quantity
+                                                                        }
+                                                                    </span>
+                                                                    <span className="text-border">
+                                                                        ·
+                                                                    </span>
+                                                                    <span>
+                                                                        {item.price.toLocaleString(
+                                                                            'vi-VN'
+                                                                        )}
+                                                                        đ
+                                                                    </span>
                                                                 </p>
                                                             </div>
-                                                            <span
-                                                                className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap font-medium ${statusLabel.cls}`}
-                                                            >
-                                                                {
-                                                                    statusLabel.text
-                                                                }
-                                                            </span>
-                                                            {isPending && (
-                                                                <button
-                                                                    onClick={() =>
-                                                                        cancelItem(
-                                                                            order._id,
-                                                                            item._id,
-                                                                            item.name
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        cancelingId ===
-                                                                        item._id
-                                                                    }
-                                                                    className="flex items-center gap-1 bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-semibold transition disabled:opacity-50 whitespace-nowrap active:scale-95"
+                                                            <div className="flex items-center gap-3 shrink-0">
+                                                                <span
+                                                                    className={`text-[10px] px-2 py-1 rounded-lg font-bold uppercase shadow-sm ${
+                                                                        item.kitchenStatus ===
+                                                                        'served'
+                                                                            ? 'bg-indigo-500/15 text-indigo-600 border border-indigo-500/20'
+                                                                            : statusLabel.cls
+                                                                    }`}
                                                                 >
-                                                                    <FiX
-                                                                        size={
-                                                                            12
+                                                                    {
+                                                                        statusLabel.text
+                                                                    }
+                                                                </span>
+                                                                {isPending && (
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            cancelItem(
+                                                                                order._id,
+                                                                                item._id,
+                                                                                item.name
+                                                                            )
                                                                         }
-                                                                    />{' '}
-                                                                    Huỷ
-                                                                </button>
-                                                            )}
+                                                                        disabled={
+                                                                            cancelingId ===
+                                                                            item._id
+                                                                        }
+                                                                        className="flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white w-8 h-8 rounded-lg transition-all disabled:opacity-50 active:scale-90 shadow-sm"
+                                                                        title="Huỷ món"
+                                                                    >
+                                                                        <FiX
+                                                                            size={
+                                                                                14
+                                                                            }
+                                                                        />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -1201,42 +1253,46 @@ export default function WaiterBoardPage() {
 
                     {/* RIGHT COLUMN: Món sẵn sàng từ bếp */}
                     <div className="flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-lg font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
-                                <FiCheckCircle className="w-6 h-6" /> Sẵn sàng
-                                phục vụ
-                                <span className="text-sm font-normal text-muted-foreground">
-                                    ({items.length} món)
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-500/10 rounded-lg text-green-600">
+                                    <FiCheckCircle className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-lg font-bold uppercase tracking-tight">
+                                    Sẵn sàng phục vụ
+                                </h2>
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-500 text-white shadow-sm">
+                                    {items.length}
                                 </span>
-                            </h2>
+                            </div>
                         </div>
 
                         {/* Search for ready items */}
-                        {items.length > 0 && (
-                            <div className="mb-3">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={searchReadyQuery}
-                                        onChange={(e) =>
-                                            setSearchReadyQuery(e.target.value)
-                                        }
-                                        placeholder="🔍 Tìm món hoặc bàn..."
-                                        className="w-full px-3 py-2 pr-8 rounded-lg text-sm border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                                    />
-                                    {searchReadyQuery && (
-                                        <button
-                                            onClick={() =>
-                                                setSearchReadyQuery('')
-                                            }
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <FiX size={16} />
-                                        </button>
-                                    )}
-                                </div>
+                        <div className="mb-4">
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={searchReadyQuery}
+                                    onChange={(e) =>
+                                        setSearchReadyQuery(e.target.value)
+                                    }
+                                    placeholder="TÌM MÓN HOẶC BÀN..."
+                                    className="w-full pl-10 pr-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border-2 border-border bg-card focus:border-highlight focus:outline-none transition-all shadow-sm"
+                                />
+                                <UtensilsCrossed
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-highlight transition-colors"
+                                    size={18}
+                                />
+                                {searchReadyQuery && (
+                                    <button
+                                        onClick={() => setSearchReadyQuery('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-highlight transition-colors"
+                                    >
+                                        <FiX size={18} />
+                                    </button>
+                                )}
                             </div>
-                        )}
+                        </div>
 
                         <div
                             className="overflow-y-auto space-y-3 pr-2 custom-scrollbar"
@@ -1338,57 +1394,81 @@ export default function WaiterBoardPage() {
                                         return (
                                             <div
                                                 key={item._id}
-                                                className={`rounded-2xl p-4 flex flex-col gap-3 transition border ${
+                                                className={`rounded-2xl p-5 flex flex-col gap-4 transition-all border-2 ${
                                                     isUrgent
-                                                        ? 'border-red-500 animate-pulse'
-                                                        : 'border-border hover:shadow-lg'
+                                                        ? 'border-red-500 animate-pulse bg-red-500/5 shadow-lg shadow-red-500/20'
+                                                        : 'border-border hover:shadow-xl hover:border-highlight/30 liquid-glass'
                                                 }`}
-                                                style={{
-                                                    background: isUrgent
-                                                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.08) 100%)'
-                                                        : 'rgba(var(--card-rgb), 0.98)',
-                                                    backdropFilter:
-                                                        'blur(12px)',
-                                                }}
+                                                style={
+                                                    !isUrgent
+                                                        ? {
+                                                              background:
+                                                                  'rgba(var(--card-rgb, 255, 255, 255), 0.8)',
+                                                          }
+                                                        : {}
+                                                }
                                             >
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span
-                                                                className="text-xs font-bold px-2 py-0.5 rounded-full"
-                                                                style={{
-                                                                    background:
-                                                                        'linear-gradient(135deg, rgba(201, 96, 72, 0.2) 0%, rgba(217, 122, 102, 0.1) 100%)',
-                                                                    color: '#C96048',
-                                                                }}
-                                                            >
-                                                                Bàn {tableName}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-base font-bold text-foreground">
-                                                            {item.product
-                                                                ?.name ||
-                                                                'Món ăn'}
-                                                        </p>
-                                                        <p className="text-muted-foreground text-sm">
+                                                <div className="mb-4">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-[11px] font-bold font-mono px-2 py-0.5 bg-muted rounded-md text-muted-foreground border border-border">
+                                                            #
+                                                            {item._id
+                                                                ?.slice(-4)
+                                                                .toUpperCase()}
+                                                        </span>
+                                                        <span
+                                                            className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg shadow-sm border border-highlight/20"
+                                                            style={{
+                                                                background:
+                                                                    'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
+                                                                color: 'white',
+                                                            }}
+                                                        >
+                                                            Bàn {tableName}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-base font-bold uppercase tracking-tight text-highlight leading-tight mb-1">
+                                                        {item.product?.name ||
+                                                            'Món ăn'}
+                                                    </p>
+                                                    <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                                                        <span className="text-highlight">
                                                             x{item.quantity}
-                                                        </p>
-                                                    </div>
-                                                    <div className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/40 whitespace-nowrap font-medium">
-                                                        Sẵn sàng ✓
-                                                    </div>
+                                                        </span>
+                                                        {item.product
+                                                            ?.price && (
+                                                            <>
+                                                                <span className="text-border">
+                                                                    ·
+                                                                </span>
+                                                                <span>
+                                                                    {item.product.price.toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}
+                                                                    đ
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </p>
                                                 </div>
 
-                                                {readyMinutes !== null && (
-                                                    <p
-                                                        className={`text-xs flex items-center gap-1 ${isUrgent ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}`}
-                                                    >
-                                                        <FiClock size={12} />
-                                                        {isUrgent
-                                                            ? `⚠️ Đã chờ ${readyMinutes} phút!`
-                                                            : `Xong lúc ${new Date(item.readyAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
-                                                    </p>
-                                                )}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="bg-green-500/10 text-green-600 text-[10px] px-2.5 py-1 rounded-lg border border-green-500/20 whitespace-nowrap font-bold uppercase tracking-wider">
+                                                        Sẵn sàng ✓
+                                                    </div>
+                                                    {readyMinutes !== null && (
+                                                        <p
+                                                            className={`text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5 ${isUrgent ? 'text-red-500 animate-pulse' : 'text-muted-foreground'}`}
+                                                        >
+                                                            <FiClock
+                                                                size={12}
+                                                            />
+                                                            {isUrgent
+                                                                ? `⚠️ Đợi ${readyMinutes} phút!`
+                                                                : `Xong lúc ${new Date(item.readyAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+                                                        </p>
+                                                    )}
+                                                </div>
 
                                                 <button
                                                     onClick={() =>
@@ -1426,15 +1506,15 @@ export default function WaiterBoardPage() {
                     }}
                 >
                     <div
-                        className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden border border-border"
+                        className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden border-2 border-border liquid-glass"
                         style={{
-                            background: 'rgba(var(--card-rgb), 0.98)',
-                            backdropFilter: 'blur(12px)',
+                            background:
+                                'rgba(var(--card-rgb, 255, 255, 255), 0.9)',
                         }}
                     >
                         {/* Modal Header */}
                         <div
-                            className="px-6 py-4 flex items-center justify-between"
+                            className="px-6 py-4 flex items-center justify-between border-b-2 border-border/50"
                             style={{
                                 background:
                                     'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
@@ -1472,7 +1552,7 @@ export default function WaiterBoardPage() {
                                                 key={idx}
                                                 className="flex justify-center"
                                             >
-                                                <div className="px-3 py-1.5 rounded-full bg-accent text-muted-foreground text-xs border border-border">
+                                                <div className="px-4 py-1 rounded-full bg-accent/50 text-muted-foreground text-[10px] font-bold uppercase tracking-wider border border-border">
                                                     {msg.text}
                                                 </div>
                                             </div>
@@ -1516,7 +1596,7 @@ export default function WaiterBoardPage() {
                         </div>
 
                         {/* Input */}
-                        <div className="bg-card border-t border-border p-4">
+                        <div className="bg-card border-t-2 border-border p-4">
                             <div className="flex gap-3">
                                 <textarea
                                     value={chatInput}
@@ -1535,17 +1615,20 @@ export default function WaiterBoardPage() {
                                             }
                                         }
                                     }}
-                                    placeholder="Nhập tin nhắn..."
+                                    placeholder="NHẬP TIN NHẮN..."
                                     rows={1}
-                                    className="flex-1 px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-background text-foreground resize-none overflow-y-auto leading-relaxed"
+                                    className="flex-1 px-4 py-2.5 border-2 border-border rounded-xl focus:border-blue-500 focus:outline-none bg-background text-foreground resize-none overflow-y-auto leading-relaxed text-sm"
                                     style={{ minHeight: '44px' }}
                                 />
                                 <button
                                     onClick={() => {
                                         sendChatMessage();
                                         // Reset height if we can find the element
-                                        const textarea = document.querySelector('textarea[placeholder="Nhập tin nhắn..."]');
-                                        if (textarea) textarea.style.height = 'auto';
+                                        const textarea = document.querySelector(
+                                            'textarea[placeholder="Nhập tin nhắn..."]'
+                                        );
+                                        if (textarea)
+                                            textarea.style.height = 'auto';
                                     }}
                                     disabled={!chatInput.trim()}
                                     className="px-6 py-2.5 text-white rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95 h-fit mt-auto"

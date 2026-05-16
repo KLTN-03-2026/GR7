@@ -365,11 +365,11 @@ const UserMenu = ({ close }) => {
                     title="Tổng quan"
                     icon="📊"
                     sectionKey="general"
-                    show={['ADMIN', 'WAITER', 'CASHIER', 'CHEF'].includes(user.role)}
+                    show={['ADMIN', 'WAITER', 'CASHIER', 'CHEF'].includes(
+                        user.role
+                    )}
                 >
-                    <MenuLink to="/dashboard">
-                        Dashboard
-                    </MenuLink>
+                    <MenuLink to="/dashboard">Dashboard</MenuLink>
                 </MenuSection>
 
                 {/* 2. Restaurant Section - ADMIN, WAITER, CASHIER */}
@@ -412,15 +412,11 @@ const UserMenu = ({ close }) => {
                     sectionKey="products"
                     show={user.role === 'ADMIN'}
                 >
-                    <MenuLink to="/dashboard/category">
-                        Danh mục
-                    </MenuLink>
+                    <MenuLink to="/dashboard/category">Danh mục</MenuLink>
                     <MenuLink to="/dashboard/sub-category">
                         Loại sản phẩm
                     </MenuLink>
-                    <MenuLink to="/dashboard/product">
-                        Sản phẩm
-                    </MenuLink>
+                    <MenuLink to="/dashboard/product">Sản phẩm</MenuLink>
                 </MenuSection>
 
                 {/* 4. System Section - ADMIN only */}
@@ -431,11 +427,9 @@ const UserMenu = ({ close }) => {
                     show={user.role === 'ADMIN'}
                 >
                     <MenuLink to="/dashboard/employee-management">
-                        Nhân viên
+                        Tài khoản hệ thống
                     </MenuLink>
-                    <MenuLink to="/dashboard/voucher">
-                        Mã giảm giá
-                    </MenuLink>
+                    <MenuLink to="/dashboard/voucher">Mã giảm giá</MenuLink>
                 </MenuSection>
 
                 {/* 5. Personal Section - CUSTOMER only */}

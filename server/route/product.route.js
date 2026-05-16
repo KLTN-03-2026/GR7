@@ -10,7 +10,10 @@ import {
     getProductDetails,
     searchProduct,
     updateProductDetails,
-    getInitialProducts
+    getInitialProducts,
+    getDeletedProductController,
+    restoreProductController,
+    hardDeleteProductController
 } from "../controllers/product.controller.js";
 
 const productRouter = Router()
@@ -26,6 +29,11 @@ productRouter.put('/update-product-details', auth, admin, updateProductDetails)
 
 //delete product
 productRouter.delete('/delete-product', auth, admin, deleteProductDetails)
+
+//soft delete / restore / hard delete
+productRouter.post('/get-deleted-product', auth, admin, getDeletedProductController)
+productRouter.put('/restore-product', auth, admin, restoreProductController)
+productRouter.delete('/hard-delete-product', auth, admin, hardDeleteProductController)
 
 //search product
 productRouter.post('/search-product', searchProduct)

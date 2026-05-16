@@ -190,7 +190,6 @@ const CashierDashboard = () => {
         return () => s.disconnect();
     }, [fetchOrders]);
 
-
     const handleConfirmPayment = async () => {
         if (!selectedOrder) return;
         setConfirming(true);
@@ -230,104 +229,112 @@ const CashierDashboard = () => {
         >
             {/* ── Header ── */}
             <div
-                className="border-b border-border px-4 py-3 sticky top-0 z-10 shadow-sm"
+                className="border-b-2 border-border px-6 py-4 sticky top-0 z-20 shadow-lg"
                 style={{
-                    background: 'rgba(var(--card-rgb), 0.95)',
-                    backdropFilter: 'blur(12px)',
+                    background: 'rgba(var(--card-rgb), 0.8)',
+                    backdropFilter: 'blur(20px)',
                 }}
             >
-                <div className="w-full flex items-center justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-3">
+                <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-4">
                         <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center"
+                            className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-highlight/20"
                             style={{
                                 background:
                                     'linear-gradient(135deg, #C96048 0%, #d97a66 100%)',
                             }}
                         >
-                            <MdOutlinePayment className="text-white text-xl" />
+                            <MdOutlinePayment className="text-white text-2xl" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold leading-none">
+                            <h1 className="text-xl font-bold uppercase tracking-tight text-highlight">
                                 Cashier Dashboard
                             </h1>
-                            <p className="text-muted-foreground text-xs mt-0.5">
-                                {clock.toLocaleString('vi-VN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                    weekday: 'short',
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                })}
-                                {user?.name && ` — ${user.name}`}
+                            <p className="text-muted-foreground text-xs font-semibold tracking-wide mt-1 flex items-center gap-2">
+                                <span className="uppercase">
+                                    {clock.toLocaleString('vi-VN', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        weekday: 'short',
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                    })}
+                                </span>
+                                <span className="text-border">|</span>
+                                <span className="text-highlight font-bold">
+                                    {user?.name || 'Nhân viên'}
+                                </span>
                             </p>
                         </div>
                     </div>
 
-                    <div className="hidden sm:flex items-center gap-4">
-                        <div className="text-center">
-                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <CreditCard
-                                    className="w-5 h-5"
-                                    style={{ color: '#C96048' }}
-                                />
-                                <p
-                                    className="text-2xl font-bold"
-                                    style={{ color: '#C96048' }}
-                                >
+                    <div className="hidden sm:flex items-center gap-8">
+                        <div className="text-center group">
+                            <div className="flex items-center justify-center gap-2 mb-0.5">
+                                <CreditCard className="w-4 h-4 text-highlight" />
+                                <p className="text-xl font-bold text-highlight">
                                     {orders.length}
                                 </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] font-semibold uppercase text-muted-foreground group-hover:text-highlight transition-colors">
                                 Chờ thu tiền
                             </p>
                         </div>
-                        <div className="h-8 w-px bg-border" />
-                        <div className="text-center">
-                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <Wallet className="w-5 h-5 text-green-500 dark:text-green-400" />
-                                <p className="text-lg font-bold text-green-500 dark:text-green-400">
-                                    {totalPending.toLocaleString('vi-VN')}đ
+                        <div className="h-8 w-px bg-border/50" />
+                        <div className="text-center group">
+                            <div className="flex items-center justify-center gap-2 mb-0.5">
+                                <Wallet className="w-4 h-4 text-green-500" />
+                                <p className="text-xl font-bold text-green-500">
+                                    {totalPending.toLocaleString('vi-VN')}
+                                    <span className="text-xl font-bold ml-0.5">
+                                        đ
+                                    </span>
                                 </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] font-semibold uppercase text-muted-foreground group-hover:text-highlight transition-colors">
                                 Tổng cần thu
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <div
-                            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                            className={`flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg border shadow-sm ${
                                 connected
-                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                                    : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                                    ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                                    : 'bg-red-500/10 text-red-600 border-red-500/20'
                             }`}
                         >
-                            {connected ? (
-                                <FiWifi size={12} />
-                            ) : (
-                                <FiWifiOff size={12} />
-                            )}
-                            {connected ? 'Real-time' : 'Offline'}
+                            <div
+                                className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
+                            />
+                            {connected ? 'Live' : 'Offline'}
                         </div>
-                        <button
-                            onClick={() => setIsExpanded((p) => !p)}
-                            className="flex items-center justify-center bg-card hover:bg-accent border border-border w-10 h-10 rounded-xl transition text-foreground active:scale-95"
-                        >
-                            {isExpanded ? (
-                                <FiMinimize size={18} />
-                            ) : (
-                                <FiMaximize size={18} />
-                            )}
-                        </button>
-                        <button
-                            onClick={fetchOrders}
-                            className="flex items-center gap-2 bg-card hover:bg-accent border border-border px-3 py-2 h-10 rounded-xl transition text-sm text-foreground active:scale-95"
-                        >
-                            <FiRefreshCw size={14} /> Làm mới
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsExpanded((p) => !p)}
+                                className="flex items-center justify-center bg-card hover:bg-accent border-2 border-border w-10 h-10 rounded-xl transition-all active:scale-90"
+                            >
+                                {isExpanded ? (
+                                    <FiMinimize size={18} />
+                                ) : (
+                                    <FiMaximize size={18} />
+                                )}
+                            </button>
+                            <button
+                                onClick={fetchOrders}
+                                className="flex items-center gap-2 bg-card hover:bg-accent border-2 border-border px-3 py-2 h-10 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest active:scale-90"
+                            >
+                                <FiRefreshCw
+                                    size={14}
+                                    className={loading ? 'animate-spin' : ''}
+                                />
+                                <span className="hidden md:inline">
+                                    Làm mới
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -353,17 +360,20 @@ const CashierDashboard = () => {
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* LEFT COLUMN: Danh sách hóa đơn chờ thanh toán */}
-                        <div className="lg:col-span-1">
-                            <h2
-                                className="text-lg font-bold mb-3 flex items-center gap-2"
-                                style={{ color: '#C96048' }}
-                            >
-                                <MdOutlinePayment className="w-6 h-6" /> Hóa đơn
-                                chờ thanh toán
-                                <span className="text-sm font-normal text-muted-foreground">
-                                    ({orders.length})
-                                </span>
-                            </h2>
+                        <div className="lg:col-span-1 flex flex-col">
+                            <div className="flex items-center justify-between mb-4 px-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-highlight/10 rounded-lg text-highlight">
+                                        <MdOutlinePayment className="w-5 h-5" />
+                                    </div>
+                                    <h2 className="text-lg font-bold uppercase tracking-tight text-foreground">
+                                        Chờ thanh toán
+                                    </h2>
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-highlight text-white shadow-sm">
+                                        {orders.length}
+                                    </span>
+                                </div>
+                            </div>
 
                             <div
                                 className="space-y-3 overflow-y-auto pr-2 custom-scrollbar"
@@ -389,61 +399,68 @@ const CashierDashboard = () => {
                                             onClick={() => {
                                                 setSelectedOrder(order);
                                             }}
-                                            className={`rounded-xl overflow-hidden border transition-all cursor-pointer active:scale-[0.99] ${
+                                            className={`rounded-2xl overflow-hidden border-2 transition-all cursor-pointer active:scale-[0.98] ${
                                                 isSelected
-                                                    ? 'border-[#C96048] shadow-lg'
-                                                    : 'border-border hover:shadow-md'
+                                                    ? 'border-highlight shadow-xl shadow-highlight/10 ring-4 ring-highlight/5'
+                                                    : 'border-border hover:border-highlight/30 hover:shadow-lg'
                                             }`}
                                             style={{
                                                 background: isSelected
-                                                    ? 'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)'
-                                                    : 'rgba(var(--card-rgb), 0.98)',
-                                                backdropFilter: 'blur(12px)',
+                                                    ? 'linear-gradient(135deg, rgba(201, 96, 72, 0.1) 0%, rgba(217, 122, 102, 0.05) 100%)'
+                                                    : 'rgba(var(--card-rgb), 0.8)',
+                                                backdropFilter: 'blur(20px)',
                                             }}
                                         >
                                             {/* Card header */}
-                                            <div className="px-4 py-3 flex items-center justify-between border-b border-border">
-                                                <div className="flex items-center gap-2">
-                                                    <MdTableRestaurant
-                                                        className="text-lg"
-                                                        style={{
-                                                            color: '#C96048',
-                                                        }}
-                                                    />
-                                                    <h3
-                                                        className="font-bold"
-                                                        style={{
-                                                            color: '#C96048',
-                                                        }}
-                                                    >
+                                            <div className="px-4 py-3 flex items-center justify-between border-b-2 border-border/50">
+                                                <div className="flex items-center gap-2.5">
+                                                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 bg-muted rounded-md text-muted-foreground border border-border">
+                                                        #
+                                                        {order._id
+                                                            ?.slice(-4)
+                                                            .toUpperCase()}
+                                                    </span>
+                                                    <h3 className="font-bold text-highlight uppercase tracking-tight flex items-center gap-1.5">
+                                                        <MdTableRestaurant className="w-4 h-4" />{' '}
                                                         Bàn {order.tableNumber}
                                                     </h3>
                                                 </div>
                                                 {waitMins !== null && (
                                                     <span
-                                                        className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                                                        className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg font-bold uppercase ${
                                                             waitMins > 10
-                                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                                                : 'bg-accent text-muted-foreground'
+                                                                ? 'bg-red-500 text-white animate-pulse'
+                                                                : 'bg-highlight/10 text-highlight'
                                                         }`}
                                                     >
                                                         <FiClock size={10} />{' '}
-                                                        {waitMins}p
+                                                        {waitMins}P
                                                     </span>
                                                 )}
                                             </div>
 
                                             {/* Info */}
-                                            <div className="px-4 py-3">
-                                                <p className="text-muted-foreground text-xs">
-                                                    {itemCount} món
-                                                </p>
-                                                <p className="text-xl font-bold text-foreground mt-0.5">
-                                                    {(
-                                                        order.total || 0
-                                                    ).toLocaleString('vi-VN')}
-                                                    đ
-                                                </p>
+                                            <div className="px-5 py-4 flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                        {itemCount} món ăn
+                                                    </p>
+                                                    <p className="text-2xl font-black text-foreground tracking-tighter mt-1">
+                                                        {(
+                                                            order.total || 0
+                                                        ).toLocaleString(
+                                                            'vi-VN'
+                                                        )}
+                                                        <span className="text-sm ml-0.5">
+                                                            đ
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                                <div className="w-10 h-10 rounded-full bg-highlight/5 flex items-center justify-center text-highlight border border-highlight/10 group-hover:bg-highlight group-hover:text-white transition-colors">
+                                                    <MdOutlinePayment
+                                                        size={20}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -452,97 +469,111 @@ const CashierDashboard = () => {
                         </div>
 
                         {/* RIGHT COLUMN: Chi tiết đơn hàng + Tóm tắt thanh toán */}
-                        <div className="lg:col-span-2">
+                        <div className="lg:col-span-2 flex flex-col">
                             {!selectedOrder ? (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 border-2 border-dashed border-border rounded-2xl p-8">
-                                    <MdOutlinePayment className="text-6xl opacity-30" />
-                                    <p className="text-lg font-semibold text-foreground">
-                                        Chọn hóa đơn để xem chi tiết
-                                    </p>
-                                    <p className="text-sm">
-                                        Click vào hóa đơn bên trái để bắt đầu
-                                        thanh toán
-                                    </p>
+                                <div className="flex-1 flex flex-col items-center justify-center min-h-[500px] text-muted-foreground gap-5 border-2 border-dashed border-border rounded-[2.5rem] p-12 bg-muted/5">
+                                    <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-2">
+                                        <MdOutlinePayment className="text-6xl opacity-20" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xl font-bold text-foreground uppercase tracking-tight">
+                                            Chọn hóa đơn chi tiết
+                                        </p>
+                                        <p className="text-sm mt-2 opacity-60">
+                                            Click vào hóa đơn bên trái để bắt
+                                            đầu thanh toán
+                                        </p>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {/* Chi tiết đơn hàng */}
                                     <div
-                                        className="rounded-2xl border border-border overflow-hidden"
+                                        className="rounded-[2.5rem] border-2 border-border overflow-hidden shadow-2xl shadow-highlight/5"
                                         style={{
                                             background:
-                                                'rgba(var(--card-rgb), 0.98)',
-                                            backdropFilter: 'blur(12px)',
+                                                'rgba(var(--card-rgb), 0.8)',
+                                            backdropFilter: 'blur(20px)',
                                         }}
                                     >
                                         <div
-                                            className="px-5 py-4 border-b border-border"
+                                            className="px-6 py-5 border-b-2 border-border/50 flex items-center justify-between"
                                             style={{
                                                 background:
-                                                    'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
+                                                    'linear-gradient(135deg, rgba(201, 96, 72, 0.1) 0%, rgba(217, 122, 102, 0.05) 100%)',
                                             }}
                                         >
-                                            <h3
-                                                className="text-lg font-bold"
-                                                style={{ color: '#C96048' }}
-                                            >
-                                                Chi tiết đơn hàng - Bàn{' '}
-                                                {selectedOrder.tableNumber}
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground mt-0.5">
-                                                {selectedOrder.items?.length ||
-                                                    0}{' '}
-                                                món đã gọi
-                                            </p>
+                                            <div>
+                                                <h3 className="text-xl font-black uppercase tracking-tight text-highlight leading-tight">
+                                                    Bàn{' '}
+                                                    {selectedOrder.tableNumber}
+                                                </h3>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-highlight" />
+                                                    {selectedOrder.items
+                                                        ?.length || 0}{' '}
+                                                    món ăn đã phục vụ
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-bold font-mono px-2.5 py-1.5 bg-muted/50 rounded-xl text-muted-foreground border border-border/50 backdrop-blur-sm">
+                                                    ID: #
+                                                    {selectedOrder._id
+                                                        ?.slice(-6)
+                                                        .toUpperCase()}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         {/* Items table */}
-                                        <div className="p-5">
-                                            <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                                        <div className="p-6">
+                                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                                 {(
                                                     selectedOrder.items || []
                                                 ).map((item, idx) => (
                                                     <div
                                                         key={idx}
-                                                        className="flex items-center justify-between gap-4 bg-accent/30 rounded-lg px-4 py-3 border border-border"
+                                                        className="flex items-center justify-between gap-4 bg-muted/20 hover:bg-muted/30 transition-colors rounded-2xl px-5 py-4 border-2 border-border/50 group/item"
                                                     >
-                                                        <div className="flex-1">
-                                                            <p className="font-semibold text-foreground">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-bold text-sm uppercase tracking-tight text-foreground group-hover/item:text-highlight transition-colors">
                                                                 {item.name}
                                                             </p>
                                                             {item.note && (
-                                                                <p className="text-xs mt-1 text-muted-foreground">
-                                                                    📝{' '}
+                                                                <p className="text-[10px] font-bold text-highlight italic mt-1.5 flex items-center gap-1.5">
+                                                                    <span className="shrink-0">
+                                                                        📝
+                                                                    </span>
                                                                     {item.note}
                                                                 </p>
                                                             )}
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="text-sm text-muted-foreground">
-                                                                x{item.quantity}
-                                                            </p>
-                                                            <p className="text-sm font-medium text-foreground">
-                                                                {item.price.toLocaleString(
-                                                                    'vi-VN'
-                                                                )}
-                                                                đ
-                                                            </p>
-                                                        </div>
-                                                        <div className="text-right min-w-[80px]">
-                                                            <p
-                                                                className="font-bold"
-                                                                style={{
-                                                                    color: '#C96048',
-                                                                }}
-                                                            >
-                                                                {(
-                                                                    item.price *
-                                                                    item.quantity
-                                                                ).toLocaleString(
-                                                                    'vi-VN'
-                                                                )}
-                                                                đ
-                                                            </p>
+                                                        <div className="text-right flex items-center gap-4">
+                                                            <div>
+                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                                    SL: x
+                                                                    {
+                                                                        item.quantity
+                                                                    }
+                                                                </p>
+                                                                <p className="text-xs font-bold text-foreground/60 mt-0.5">
+                                                                    {item.price.toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}
+                                                                    đ
+                                                                </p>
+                                                            </div>
+                                                            <div className="min-w-[100px] text-right">
+                                                                <p className="text-base font-black text-highlight tracking-tighter">
+                                                                    {(
+                                                                        item.price *
+                                                                        item.quantity
+                                                                    ).toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}
+                                                                    đ
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -552,200 +583,252 @@ const CashierDashboard = () => {
 
                                     {/* Tóm tắt thanh toán */}
                                     <div
-                                        className="rounded-2xl border border-border overflow-hidden"
+                                        className="rounded-[2.5rem] border-2 border-border overflow-hidden shadow-2xl shadow-highlight/5"
                                         style={{
                                             background:
-                                                'rgba(var(--card-rgb), 0.98)',
-                                            backdropFilter: 'blur(12px)',
+                                                'rgba(var(--card-rgb), 0.8)',
+                                            backdropFilter: 'blur(20px)',
                                         }}
                                     >
                                         <div
-                                            className="px-5 py-4 border-b border-border"
+                                            className="px-6 py-5 border-b-2 border-border/50"
                                             style={{
                                                 background:
-                                                    'linear-gradient(135deg, rgba(201, 96, 72, 0.15) 0%, rgba(217, 122, 102, 0.08) 100%)',
+                                                    'linear-gradient(135deg, rgba(201, 96, 72, 0.1) 0%, rgba(217, 122, 102, 0.05) 100%)',
                                             }}
                                         >
-                                            <h3
-                                                className="text-lg font-bold"
-                                                style={{ color: '#C96048' }}
-                                            >
-                                                Tóm tắt thanh toán
+                                            <h3 className="text-lg font-black uppercase tracking-tight text-highlight">
+                                                Tổng hợp thanh toán
                                             </h3>
                                         </div>
 
-                                        <div className="p-5 space-y-4">
-                                            {/* Voucher - Read only */}
-                                            {selectedOrder.discount > 0 && (
-                                                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border"
-                                                    style={{
-                                                        background: 'rgba(34,197,94,0.08)',
-                                                        borderColor: 'rgba(34,197,94,0.35)',
-                                                    }}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <FiTag size={14} className="text-green-600" />
+                                        <div className="p-6 space-y-6">
+                                            {/* Voucher & Points - Read only */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {selectedOrder.discount > 0 && (
+                                                    <div className="flex items-center gap-3 px-4 py-4 rounded-2xl border-2 bg-green-500/5 border-green-500/20 backdrop-blur-sm">
+                                                        <div className="p-2 bg-green-500/10 rounded-lg text-green-600">
+                                                            <FiTag size={16} />
+                                                        </div>
                                                         <div>
-                                                            <p className="font-bold text-green-600 dark:text-green-400 text-sm">
-                                                                Mã giảm giá đã áp dụng
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-green-600 opacity-60">
+                                                                Voucher
                                                             </p>
-                                                            <p className="text-xs text-green-700 dark:text-green-300">
-                                                                Giảm {(selectedOrder.discount || 0).toLocaleString('vi-VN')}đ
+                                                            <p className="text-sm font-black text-green-600">
+                                                                -
+                                                                {(
+                                                                    selectedOrder.discount ||
+                                                                    0
+                                                                ).toLocaleString(
+                                                                    'vi-VN'
+                                                                )}
+                                                                đ
                                                             </p>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {/* Điểm thưởng - Read only */}
-                                            {selectedOrder.pointsUsed > 0 && (
-                                                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-amber-50/50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
-                                                    <div className="flex items-center gap-2">
-                                                        <FiDollarSign size={14} className="text-amber-500" />
+                                                {selectedOrder.pointsUsed >
+                                                    0 && (
+                                                    <div className="flex items-center gap-3 px-4 py-4 rounded-2xl border-2 bg-amber-500/5 border-amber-500/20 backdrop-blur-sm">
+                                                        <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
+                                                            <FiDollarSign
+                                                                size={16}
+                                                            />
+                                                        </div>
                                                         <div>
-                                                            <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">
-                                                                ✨ Đã dùng {selectedOrder.pointsUsed} điểm
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 opacity-60">
+                                                                Dùng{' '}
+                                                                {
+                                                                    selectedOrder.pointsUsed
+                                                                }{' '}
+                                                                điểm
                                                             </p>
-                                                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                                                                Giảm {(selectedOrder.pointsDiscount || 0).toLocaleString('vi-VN')}đ
+                                                            <p className="text-sm font-black text-amber-600">
+                                                                -
+                                                                {(
+                                                                    selectedOrder.pointsDiscount ||
+                                                                    0
+                                                                ).toLocaleString(
+                                                                    'vi-VN'
+                                                                )}
+                                                                đ
                                                             </p>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
 
                                             {/* Total summary */}
-                                            <div className="space-y-2 pt-3 border-t border-border">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">
-                                                        Tạm tính:
-                                                    </span>
-                                                    <span className="font-medium text-foreground">
-                                                        {(
-                                                            selectedOrder.subTotal ||
-                                                            selectedOrder.total ||
-                                                            0
-                                                        ).toLocaleString(
-                                                            'vi-VN'
-                                                        )}
-                                                        đ
-                                                    </span>
+                                            <div className="bg-muted/30 rounded-[2rem] p-6 border-2 border-border/50">
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center text-xs font-bold tracking-widest text-muted-foreground">
+                                                        <span className="uppercase">
+                                                            Tạm tính:
+                                                        </span>
+                                                        <span className="text-foreground">
+                                                            {(
+                                                                selectedOrder.subTotal ||
+                                                                selectedOrder.total ||
+                                                                0
+                                                            ).toLocaleString(
+                                                                'vi-VN'
+                                                            )}
+                                                            đ
+                                                        </span>
+                                                    </div>
+
+                                                    {selectedOrder.discount >
+                                                        0 && (
+                                                        <div className="flex justify-between items-center text-xs font-bold tracking-widest text-green-600">
+                                                            <span className="uppercase">
+                                                                Giảm mã Voucher:
+                                                            </span>
+                                                            <span>
+                                                                -
+                                                                {(
+                                                                    selectedOrder.discount ||
+                                                                    0
+                                                                ).toLocaleString(
+                                                                    'vi-VN'
+                                                                )}
+                                                                đ
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {selectedOrder.pointsDiscount >
+                                                        0 && (
+                                                        <div className="flex justify-between items-center text-xs font-bold tracking-widest text-amber-600">
+                                                            <span className="uppercase">
+                                                                Giảm điểm
+                                                                thưởng:
+                                                            </span>
+                                                            <span>
+                                                                -
+                                                                {(
+                                                                    selectedOrder.pointsDiscount ||
+                                                                    0
+                                                                ).toLocaleString(
+                                                                    'vi-VN'
+                                                                )}
+                                                                đ
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">
-                                                        Giảm mã Voucher:
-                                                    </span>
-                                                    <span className="font-medium text-green-600 dark:text-green-400">
-                                                        -
-                                                        {(
-                                                            selectedOrder.discount ||
-                                                            0
-                                                        ).toLocaleString(
-                                                            'vi-VN'
+
+                                                <div className="mt-4 pt-4 border-t-2 border-border/50 flex justify-between items-end">
+                                                    <div>
+                                                        <p className="text-sm font-black uppercase text-muted-foreground mb-1">
+                                                            Cần thanh toán
+                                                        </p>
+                                                        {selectedOrder.paymentMethod ===
+                                                            'online' && (
+                                                            <h4 className="text-sm font-bold text-green-600 italic">
+                                                                💳 Đã thanh toán
+                                                                Online
+                                                            </h4>
                                                         )}
-                                                        đ
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">
-                                                        Giảm điểm thưởng:
-                                                    </span>
-                                                    <span className="font-medium text-amber-600 dark:text-amber-400">
-                                                        -
-                                                        {(
-                                                            selectedOrder.pointsDiscount ||
-                                                            0
-                                                        ).toLocaleString(
-                                                            'vi-VN'
-                                                        )}
-                                                        đ
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center pt-2 border-t border-border">
-                                                    <span className="text-lg font-bold text-foreground">
-                                                        Tổng cộng:
-                                                    </span>
-                                                    <span
-                                                        className="text-2xl font-bold"
-                                                        style={{
-                                                            color: '#C96048',
-                                                        }}
-                                                    >
-                                                        {(
-                                                            selectedOrder.total ||
-                                                            0
-                                                        ).toLocaleString(
-                                                            'vi-VN'
-                                                        )}
-                                                        đ
-                                                    </span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-3xl font-black tracking-tighter text-highlight">
+                                                            {(
+                                                                selectedOrder.total ||
+                                                                0
+                                                            ).toLocaleString(
+                                                                'vi-VN'
+                                                            )}
+                                                            đ
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Payment calculator */}
-                                            <div className="pt-4 border-t border-border space-y-3">
-                                                <h4 className="font-semibold text-foreground">
-                                                    Hỗ trợ tính tiền
-                                                </h4>
-
-                                                <div>
-                                                    <label className="text-sm font-medium text-foreground mb-2 block">
-                                                        Tiền khách đưa
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        value={customerPaid}
-                                                        onChange={(e) =>
-                                                            setCustomerPaid(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder="Nhập số tiền..."
-                                                        className="w-full px-4 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 bg-background text-foreground text-lg font-semibold"
-                                                    />
-                                                </div>
-
-                                                {customerPaid &&
-                                                    parseFloat(customerPaid) >=
-                                                        (selectedOrder.total ||
-                                                            0) && (
-                                                        <div
-                                                            className="rounded-xl p-4"
-                                                            style={{
-                                                                background:
-                                                                    'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%)',
-                                                                border: '1px solid rgba(34, 197, 94, 0.3)',
-                                                            }}
-                                                        >
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                                                                    Tiền thừa
-                                                                    trả khách:
-                                                                </span>
-                                                                <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                                                    {(
-                                                                        parseFloat(
-                                                                            customerPaid
-                                                                        ) -
-                                                                        (selectedOrder.total ||
-                                                                            0)
-                                                                    ).toLocaleString(
-                                                                        'vi-VN'
-                                                                    )}
-                                                                    đ
-                                                                </span>
-                                                            </div>
+                                            {/* Payment support (Optional calculator) */}
+                                            <div className="pt-6 border-t-2 border-border/50 space-y-4">
+                                                <label className="text-sm font-black uppercase text-muted-foreground block">
+                                                    Hỗ trợ tính tiền thừa (nếu
+                                                    trả tiền mặt)
+                                                </label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                                                    <div className="relative group/input">
+                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within/input:text-highlight transition-colors">
+                                                            <FiDollarSign
+                                                                size={20}
+                                                            />
                                                         </div>
-                                                    )}
+                                                        <input
+                                                            type="number"
+                                                            value={customerPaid}
+                                                            onChange={(e) =>
+                                                                setCustomerPaid(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            placeholder="Nhập số tiền nhận được..."
+                                                            className="w-full h-full pl-12 no-spinner pr-4 py-4 border-2 border-border rounded-2xl focus:outline-none focus:border-highlight focus:ring-4 focus:ring-highlight/5 bg-muted/20
+                                                            text-foreground text-lg font-black tracking-tight transition-all uppercase"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex">
+                                                        {customerPaid &&
+                                                        parseFloat(
+                                                            customerPaid
+                                                        ) >=
+                                                            (selectedOrder.total ||
+                                                                0) ? (
+                                                            <div className="w-full rounded-2xl p-3 px-6 border-2 border-green-500/20 bg-green-500/5 backdrop-blur-md animate-in slide-in-from-right-4 duration-300 flex items-center justify-between">
+                                                                <div>
+                                                                    <p className="text-[12px] font-black uppercase tracking-widest text-green-600 opacity-60 mb-2">
+                                                                        Tiền
+                                                                        thừa trả
+                                                                        khách
+                                                                    </p>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-xl font-black text-green-600 tracking-tighter leading-none">
+                                                                            {(
+                                                                                parseFloat(
+                                                                                    customerPaid
+                                                                                ) -
+                                                                                (selectedOrder.total ||
+                                                                                    0)
+                                                                            ).toLocaleString(
+                                                                                'vi-VN'
+                                                                            )}
+                                                                            <span className="text-xl ml-1 font-black">
+                                                                                đ
+                                                                            </span>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="p-2 bg-green-500 text-white rounded-lg shadow-lg shadow-green-500/20">
+                                                                    <FiCheckCircle
+                                                                        size={
+                                                                            20
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="w-full rounded-2xl p-5 border-2 border-dashed border-border flex items-center justify-center text-muted-foreground text-sm uppercase font-bold text-center">
+                                                                Hỗ trợ tính tiền
+                                                                thừa
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Action buttons */}
-                                            <div className="flex gap-3 pt-4">
+                                            <div className="flex gap-4 pt-6">
                                                 <button
                                                     onClick={() =>
                                                         printBill(selectedOrder)
                                                     }
-                                                    className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent/80 text-foreground py-3 rounded-xl font-semibold transition border border-border active:scale-95"
+                                                    className="flex-1 flex items-center justify-center gap-3 bg-muted/50 hover:bg-muted text-foreground py-4 rounded-2xl font-black uppercase text-sm transition-all border-2 border-border/50 active:scale-[0.98] shadow-sm"
                                                 >
                                                     <FiPrinter size={18} /> In
                                                     hóa đơn
@@ -755,7 +838,7 @@ const CashierDashboard = () => {
                                                         handleConfirmPayment
                                                     }
                                                     disabled={confirming}
-                                                    className="flex-1 flex items-center justify-center gap-2 text-white py-3 rounded-xl font-bold transition disabled:opacity-60 active:scale-95"
+                                                    className="flex-[1.5] flex items-center justify-center gap-3 text-white py-4 rounded-2xl font-black uppercase text-sm transition-all disabled:opacity-60 active:scale-[0.98] shadow-xl shadow-highlight/20"
                                                     style={{
                                                         background: confirming
                                                             ? 'rgba(201, 96, 72, 0.6)'
@@ -765,7 +848,7 @@ const CashierDashboard = () => {
                                                     <FiCheckCircle size={18} />
                                                     {confirming
                                                         ? 'Đang xử lý...'
-                                                        : 'Xác nhận đã thu tiền'}
+                                                        : 'Xác nhận thu tiền'}
                                                 </button>
                                             </div>
                                         </div>

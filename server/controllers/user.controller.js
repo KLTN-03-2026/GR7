@@ -951,48 +951,55 @@ export async function getCustomerAnalytics(req, res) {
             if (endDate)   orderQuery.createdAt.$lte = new Date(endDate);
         }
 
-        // TableOrder dùng 'customerId' (guest) hoặc user đăng nhập qua table QR
+        // TableOrder dùng 'userId' (thành viên) hoặc 'customerId' (guest check-in)
         const orders = await TableOrderModel.find(orderQuery)
             .populate({ path: 'customerId', select: 'name phone createdAt' })
+            .populate({ path: 'userId', select: 'name phone createdAt' })
             .sort({ createdAt: -1 });
 
         // Tính metrics theo đơn hàng
-        // - Loyalty customer (có customerId): gộp các đơn cùng 1 khách
-        // - Anonymous (không có customerId): mỗi đơn = 1 lượt ghé thăm riêng biệt
         const customerStats = {};
 
         orders.forEach(order => {
-            if (order.customerId) {
-                // ── Khách đã đăng ký loyalty (check-in QR) ──────────────────
-                const custKey = order.customerId._id.toString();
+            if (order.userId || order.customerId) {
+                // ── Khách có định danh (Thành viên hoặc Guest tracked) ──────
+                const activeCust = order.userId || order.customerId;
+                const custKey = activeCust._id.toString();
+                const isMember = !!order.userId;
 
-                // Customer.name có default "" nên cần .trim() để check
-                const custName = order.customerId.name?.trim();
-                const custPhone = order.customerId.phone?.trim();
-                const displayName =
-                    custName ||
-                    (custPhone ? `Khách ${custPhone}` : 'Khách vãng lai');
+                const custName = activeCust.name?.trim();
+                const custPhone = activeCust.phone?.trim();
+                
+                let displayName = custName;
+                if (!displayName) {
+                    if (custPhone) {
+                        displayName = `Khách ${custPhone}`;
+                    } else {
+                        displayName = isMember ? 'Thành viên' : 'Khách vãng lai';
+                    }
+                }
 
                 if (!customerStats[custKey]) {
                     customerStats[custKey] = {
-                        customerId: order.customerId._id,
+                        customerId: activeCust._id,
                         name: displayName,
                         phone: custPhone || null,
-                        isRegistered: true,
+                        isRegistered: isMember,
                         orderCount: 0,
                         totalRevenue: 0,
-                        joinedDate: order.customerId.createdAt || order.createdAt,
+                        joinedDate: activeCust.createdAt || order.createdAt,
                     };
                 }
-                // Cập nhật tên nếu trước đó chưa có
+                
+                // Cập nhật tên nếu trước đó chưa có hoặc là mặc định
                 if (!customerStats[custKey].name || customerStats[custKey].name === 'Khách vãng lai') {
                     customerStats[custKey].name = displayName;
                 }
+                
                 customerStats[custKey].orderCount += 1;
                 customerStats[custKey].totalRevenue += order.total || 0;
             } else {
-                // ── Khách vãng lai (mỗi đơn = 1 lượt) ─────────────────────
-                // Dùng orderId làm key để mỗi lần ghé thăm được đếm riêng
+                // ── Khách vãng lai hoàn toàn (mỗi đơn = 1 lượt) ──────────────
                 const anonKey = `anon_${order._id.toString()}`;
                 const tableLabel = order.tableNumber
                     ? `Bàn ${order.tableNumber}`

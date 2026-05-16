@@ -3,10 +3,10 @@ import mongoose from "mongoose";
 
 export const addProductController = async (req, res) => {
     try {
-        const { name, image, category, subCategory, unit, stock,
+        const { name, image, category, subCategory, stock,
             price, discount, description, more_details, options } = req.body
 
-        if (!name || !image[0] || !category[0] || !unit || !stock || !price) {
+        if (!name || !image[0] || !category[0] || !stock || !price) {
             return res.status(400).json({
                 message: "Vui lòng nhập đầy đủ thông tin bắt buộc",
                 error: true,
@@ -19,7 +19,6 @@ export const addProductController = async (req, res) => {
             image,
             category,
             subCategory,
-            unit,
             stock,
             price,
             discount,
@@ -62,7 +61,8 @@ export const getProductController = async (req, res) => {
         if (!limit) limit = 10;
 
         // Build query object
-        const query = {};
+        // Build query object
+        const query = { isDeleted: { $ne: true } };
 
         // Add search query if provided
         if (search && search.trim()) {
@@ -364,10 +364,13 @@ export const deleteProductDetails = async (request, response) => {
             })
         }
 
-        const deleteProduct = await ProductModel.deleteOne({ _id: _id })
+        const deleteProduct = await ProductModel.updateOne({ _id: _id }, {
+            isDeleted: true,
+            deletedAt: new Date()
+        })
 
         return response.json({
-            message: "Xóa sản phẩm thành công",
+            message: "Đã đưa sản phẩm vào thùng rác",
             error: false,
             success: true,
             data: deleteProduct
@@ -380,6 +383,116 @@ export const deleteProductDetails = async (request, response) => {
         })
     }
 }
+
+// Get Deleted Products
+export const getDeletedProductController = async (req, res) => {
+    try {
+        let { page, limit, search } = req.body;
+
+        if (!page) page = 1;
+        if (!limit) limit = 10;
+
+        const query = { isDeleted: true };
+
+        if (search && search.trim()) {
+            const safeSearch = escapeRegex(search.trim());
+            query.$or = [
+                { name: { $regex: safeSearch, $options: 'i' } },
+                { description: { $regex: safeSearch, $options: 'i' } },
+            ];
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [data, totalCount] = await Promise.all([
+            ProductModel.find(query)
+                .populate('category')
+                .populate('subCategory')
+                .sort({ deletedAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            ProductModel.countDocuments(query)
+        ]);
+
+        return res.json({
+            message: 'Danh sách sản phẩm đã xóa',
+            data: data,
+            totalCount: totalCount,
+            totalNoPage: Math.ceil(totalCount / limit),
+            error: false,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+};
+
+// Restore Product
+export const restoreProductController = async (req, res) => {
+    try {
+        const { _id } = req.body;
+
+        if (!_id) {
+            return res.status(400).json({
+                message: "Vui lòng cung cấp mã sản phẩm",
+                error: true,
+                success: false
+            });
+        }
+
+        const restoreProduct = await ProductModel.updateOne({ _id: _id }, {
+            isDeleted: false,
+            deletedAt: null
+        });
+
+        return res.json({
+            message: "Khôi phục sản phẩm thành công",
+            data: restoreProduct,
+            error: false,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+};
+
+// Hard Delete Product
+export const hardDeleteProductController = async (req, res) => {
+    try {
+        const { _id } = req.body;
+
+        if (!_id) {
+            return res.status(400).json({
+                message: "Vui lòng cung cấp mã sản phẩm",
+                error: true,
+                success: false
+            });
+        }
+
+        const deleteProduct = await ProductModel.deleteOne({ _id: _id });
+
+        return res.json({
+            message: "Đã xóa vĩnh viễn sản phẩm",
+            data: deleteProduct,
+            error: false,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        });
+    }
+};
 
 // Escape regex special characters
 function escapeRegex(text) {
@@ -423,11 +536,11 @@ export const searchProduct = async (request, response) => {
         const safeSearch = escapeRegex(search);
 
         // Build the query
-        const query = {
-            $or: [
+        const query = { $or: [
                 { name: { $regex: safeSearch, $options: 'i' } },
                 { description: { $regex: safeSearch, $options: 'i' } },
             ],
+            isDeleted: { $ne: true }
         };
 
         // Add price range filter
@@ -496,7 +609,7 @@ export const getInitialProducts = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Build the query
-        const query = { publish: true }; // Only get published products
+        const query = { publish: true, isDeleted: { $ne: true } }; // Only get published products and not deleted
 
         // Add category filter if provided
         if (category) {

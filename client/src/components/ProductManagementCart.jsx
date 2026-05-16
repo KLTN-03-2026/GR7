@@ -15,6 +15,9 @@ import { Badge } from './ui/badge';
 const ProductManagementCart = ({ data, fetchProduct }) => {
     const [openEdit, setOpenEdit] = useState(false);
     const [openConfirmBoxDelete, setOpenConfirmBoxDelete] = useState(false);
+    const [openConfirmBoxHardDelete, setOpenConfirmBoxHardDelete] =
+        useState(false);
+    const [openConfirmBoxRestore, setOpenConfirmBoxRestore] = useState(false);
     const [imageURL, setImageURL] = useState('');
 
     const handleDeleteProduct = async () => {
@@ -34,6 +37,52 @@ const ProductManagementCart = ({ data, fetchProduct }) => {
                     fetchProduct();
                 }
                 setOpenConfirmBoxDelete(false);
+            }
+        } catch (error) {
+            AxiosToastError(error);
+        }
+    };
+
+    const handleRestoreProduct = async () => {
+        try {
+            const response = await Axios({
+                ...SummaryApi.restore_product,
+                data: {
+                    _id: data._id,
+                },
+            });
+
+            const { data: responseData } = response;
+
+            if (responseData.success) {
+                successAlert(responseData.message);
+                if (fetchProduct) {
+                    fetchProduct();
+                }
+                setOpenConfirmBoxRestore(false);
+            }
+        } catch (error) {
+            AxiosToastError(error);
+        }
+    };
+
+    const handleHardDeleteProduct = async () => {
+        try {
+            const response = await Axios({
+                ...SummaryApi.hard_delete_product,
+                data: {
+                    _id: data._id,
+                },
+            });
+
+            const { data: responseData } = response;
+
+            if (responseData.success) {
+                successAlert(responseData.message);
+                if (fetchProduct) {
+                    fetchProduct();
+                }
+                setOpenConfirmBoxHardDelete(false);
             }
         } catch (error) {
             AxiosToastError(error);
@@ -92,55 +141,94 @@ const ProductManagementCart = ({ data, fetchProduct }) => {
                                 ))}
                             </div>
                         </div>
-                        <div className="flex py-1 gap-3 md:text-base text-sm justify-between items-baseline">
-                            <p
-                                title={data?.unit}
-                                className="font-semibold line-clamp-1 text-foreground"
-                            >
-                                {data?.unit}
-                            </p>
+                        <div className="flex py-1 gap-3 md:text-base text-sm justify-end items-baseline">
                             <p className="text-foreground font-medium text-base">
                                 {DisplayPriceInVND(data?.price)}
                             </p>
                         </div>
 
                         <div className="flex w-full items-center justify-center gap-2">
-                            <GlareHover
-                                background="transparent"
-                                glareOpacity={0.3}
-                                glareAngle={-30}
-                                glareSize={300}
-                                transitionDuration={800}
-                                playOnce={false}
-                                className="flex-1"
-                            >
-                                <Button
-                                    onClick={() => {
-                                        setOpenEdit(true);
-                                    }}
-                                    className="bg-muted-foreground hover:bg-muted-foreground w-full"
-                                >
-                                    Sửa
-                                </Button>
-                            </GlareHover>
-                            <GlareHover
-                                background="transparent"
-                                glareOpacity={0.3}
-                                glareAngle={-30}
-                                glareSize={300}
-                                transitionDuration={800}
-                                playOnce={false}
-                                className="flex-1"
-                            >
-                                <Button
-                                    onClick={() => {
-                                        setOpenConfirmBoxDelete(true);
-                                    }}
-                                    className="bg-foreground w-full"
-                                >
-                                    Xóa
-                                </Button>
-                            </GlareHover>
+                            {data.isDeleted ? (
+                                <>
+                                    <GlareHover
+                                        background="transparent"
+                                        glareOpacity={0.3}
+                                        glareAngle={-30}
+                                        glareSize={300}
+                                        transitionDuration={800}
+                                        playOnce={false}
+                                        className="flex-1"
+                                    >
+                                        <Button
+                                            onClick={() => {
+                                                setOpenConfirmBoxRestore(true);
+                                            }}
+                                            className="bg-green-600 hover:bg-green-700 w-full text-white"
+                                        >
+                                            Khôi phục
+                                        </Button>
+                                    </GlareHover>
+                                    <GlareHover
+                                        background="transparent"
+                                        glareOpacity={0.3}
+                                        glareAngle={-30}
+                                        glareSize={300}
+                                        transitionDuration={800}
+                                        playOnce={false}
+                                        className="flex-1"
+                                    >
+                                        <Button
+                                            onClick={() => {
+                                                setOpenConfirmBoxHardDelete(
+                                                    true
+                                                );
+                                            }}
+                                            className="bg-rose-600 hover:bg-rose-700 w-full text-white"
+                                        >
+                                            Xóa VV
+                                        </Button>
+                                    </GlareHover>
+                                </>
+                            ) : (
+                                <>
+                                    <GlareHover
+                                        background="transparent"
+                                        glareOpacity={0.3}
+                                        glareAngle={-30}
+                                        glareSize={300}
+                                        transitionDuration={800}
+                                        playOnce={false}
+                                        className="flex-1"
+                                    >
+                                        <Button
+                                            onClick={() => {
+                                                setOpenEdit(true);
+                                            }}
+                                            className="bg-muted-foreground hover:bg-muted-foreground w-full"
+                                        >
+                                            Sửa
+                                        </Button>
+                                    </GlareHover>
+                                    <GlareHover
+                                        background="transparent"
+                                        glareOpacity={0.3}
+                                        glareAngle={-30}
+                                        glareSize={300}
+                                        transitionDuration={800}
+                                        playOnce={false}
+                                        className="flex-1"
+                                    >
+                                        <Button
+                                            onClick={() => {
+                                                setOpenConfirmBoxDelete(true);
+                                            }}
+                                            className="bg-foreground w-full"
+                                        >
+                                            Xóa
+                                        </Button>
+                                    </GlareHover>
+                                </>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -160,9 +248,33 @@ const ProductManagementCart = ({ data, fetchProduct }) => {
                     cancel={() => setOpenConfirmBoxDelete(false)}
                     confirm={handleDeleteProduct}
                     title="Xác nhận xóa sản phẩm"
-                    content="Bạn có chắc chắn muốn xóa sản phẩm này?"
+                    content="Bạn có chắc chắn muốn đưa sản phẩm này vào thùng rác?"
                     cancelText="Hủy"
                     confirmText="Xóa"
+                />
+            )}
+
+            {openConfirmBoxRestore && (
+                <ConfirmBox
+                    close={() => setOpenConfirmBoxRestore(false)}
+                    cancel={() => setOpenConfirmBoxRestore(false)}
+                    confirm={handleRestoreProduct}
+                    title="Xác nhận khôi phục sản phẩm"
+                    content="Bạn có chắc chắn muốn khôi phục sản phẩm này?"
+                    cancelText="Hủy"
+                    confirmText="Khôi phục"
+                />
+            )}
+
+            {openConfirmBoxHardDelete && (
+                <ConfirmBox
+                    close={() => setOpenConfirmBoxHardDelete(false)}
+                    cancel={() => setOpenConfirmBoxHardDelete(false)}
+                    confirm={handleHardDeleteProduct}
+                    title="Xác nhận xóa vĩnh viễn"
+                    content="Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm này?"
+                    cancelText="Hủy"
+                    confirmText="Xóa vĩnh viễn"
                 />
             )}
 

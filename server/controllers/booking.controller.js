@@ -81,9 +81,9 @@ export async function createBookingController(request, response) {
         // • Cọc Pre-order: 100% giá trị các món đặt trước
         // Áp dụng khi: số khách >= 5 HOẶC có Pre-order (tránh "bom hàng")
         const preOrderCalcTotal = sanitizedPreOrder.reduce((s, i) => s + i.price * i.quantity, 0);
-        const guestDeposit      = numberOfGuests >= 5 ? numberOfGuests * 50000 : 0;
-        const preOrderDeposit   = preOrderCalcTotal; // 100% giá trị món
-        const totalDeposit      = guestDeposit + preOrderDeposit;
+        const guestDeposit = numberOfGuests >= 5 ? numberOfGuests * 50000 : 0;
+        const preOrderDeposit = preOrderCalcTotal; // 100% giá trị món
+        const totalDeposit = guestDeposit + preOrderDeposit;
 
         const newBooking = new BookingModel({
             customerName,
@@ -100,9 +100,9 @@ export async function createBookingController(request, response) {
             depositAmount: totalDeposit,
             depositPaid: false,
             // Pre-order
-            hasPreOrder:    sanitizedPreOrder.length > 0,
-            preOrderItems:  sanitizedPreOrder,
-            preOrderTotal:  preOrderCalcTotal,
+            hasPreOrder: sanitizedPreOrder.length > 0,
+            preOrderItems: sanitizedPreOrder,
+            preOrderTotal: preOrderCalcTotal,
         });
 
         const savedBooking = await newBooking.save();
